@@ -58,33 +58,41 @@ class GAN(nn.Module):
 
     def __init__(self,
                  img_shape: Tuple[int, int, int],
-                 dropout: float) -> None:
+                 dropout: float,
+                 batch_size: int) -> None:
         """
         Args:
             img_shape : (C, H, W) image shapes
             dropout (float): The probability of zeroing before the FC layers
+            batch_size (int) : The size of the minibatch when generating images
         """
         super(GAN, self).__init__()
         self.img_shape = img_shape
+        self.batch_size = batch_size
         self.discriminator = Discriminator(img_shape, dropout)
         self.generator = Generator(img_shape)
 
-    def forward(self, X):
+    def forward(self,
+                X: Optional[torch.Tensor]):
         """
         Given true images, returns the generated tensors
         and the logits of the discriminator for both the generated tensors
         and the true tensors
+
+        Args:
+            X (torch.Tensor) : a real image or None if we just
+                               want the logits for the generated images
         """
 
-        # Step 1
-        batch_size = X.shape[0]
-        generated_images = self.generator(batch_size=batch_size)
-        print(generated_images.shape)
+        if X is not None:
+            positive_logits = self.discriminator(X)
+        else:
+            positive_logits = None
 
-        positive_logits = self.discriminator(X)
-        negative_logits = self.discriminator(X)
+        generated_images = self.generator(batch_size=self.batch_size)
+        negative_logits = self.discriminator(generated_images)
 
-        return generated_images, positive_logits, negative_logits
+        return positive_logits, negative_logits, generated_images
 
 
 class Discriminator(nn.Module):
@@ -137,7 +145,7 @@ class Discriminator(nn.Module):
         out_cnn = self.cnn(X)
         input_classif = out_cnn.view((out_cnn.shape[0], -1))
         out_classif = self.classif(input_classif)
-        return out_classif
+        return out_classif.squeeze()
 
 
 def tconv_bn_relu(in_channels, out_channels,
@@ -185,7 +193,6 @@ class Generator(nn.Module):
         if X is None:
             assert(batch_size is not None)
             device = next(self.parameters()).device
-            print(device)
             X = torch.randn(batch_size, self.latent_size).to(device)
         else:
             if len(X.shape) != 2:
