@@ -40,7 +40,7 @@ def train(args):
                                                                  cuda=use_cuda,
                                                                  batch_size=batch_size,
                                                                  n_threads = nthreads,
-                                                                 dataset="MNIST", 
+                                                                 dataset="MNIST",
                                                                 small_experiment=debug)
 
     # Model definition

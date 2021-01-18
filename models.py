@@ -89,7 +89,9 @@ class GAN(nn.Module):
 
 class Discriminator(nn.Module):
     """
-    The discriminator network tells if the input image is a fake or not
+    The discriminator network tells if the input image is real or not
+    The output logit is supposed to be high(-ly positive) for real images 
+    and low (highly negative) for fake images
     """
 
     def __init__(self,
