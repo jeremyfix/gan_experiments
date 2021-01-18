@@ -184,7 +184,9 @@ class Generator(nn.Module):
         # X is expected to be a 2D tensor (B, L)
         if X is None:
             assert(batch_size is not None)
-            X = torch.randn(batch_size, self.latent_size)
+            device = next(self.parameters()).device
+            print(device)
+            X = torch.randn(batch_size, self.latent_size).to(device)
         else:
             if len(X.shape) != 2:
                 raise RuntimeError("Expected a 2D tensor as input to the "
