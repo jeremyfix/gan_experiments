@@ -58,6 +58,7 @@ def get_dataloaders(dataset_root: Union[str, Path],
 
     if small_experiment:
         dataset = torch.utils.data.Subset(dataset, range(batch_size))
+
     # Split the dataset in train/valid
     indices = np.arange(len(dataset))
     np.random.shuffle(indices)
