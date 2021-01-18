@@ -5,6 +5,8 @@ import argparse
 import logging
 # External imports
 import torch
+# Local imports
+import data
 
 
 def train(args):
@@ -14,10 +16,20 @@ def train(args):
     logger = logging.getLogger(__name__)
     logger.info("Training")
 
+    # Parameters
+    dataset_root = args.dataset_root
+    nthreads = args.nthreads
+    batch_size = args.batch_size
+
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda') if use_cuda else torch.device('cpu')
 
     # Dataloaders
+    train_loader, valid_loader, img_shape = data.get_dataloaders(dataset_root=dataset_root,
+                                                                 cuda=use_cuda,
+                                                                 batch_size=batch_size,
+                                                                 n_threads = nthreads,
+                                                                 dataset="MNIST")
 
     # Model definition
 
@@ -43,6 +55,14 @@ if __name__ == '__main__':
     parser.add_argument("--dataset",
                         choices=["MNIST"],
                         help="Which dataset to use")
+    parser.add_argument("--dataset_root",
+                       type=str,
+                       help="The root dir where the datasets are stored",
+                       default=data._DEFAULT_DATASET_ROOT)
+    parser.add_argument("--batch_size",
+                       type=int,
+                       help="The size of a minibatch",
+                       default=64)
     parser.add_argument("--nthreads",
                        type=int,
                        help="The number of threads to use for loading the data",
