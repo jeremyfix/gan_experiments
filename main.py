@@ -73,18 +73,22 @@ def train(args):
     # Training loop
     for e in range(num_epochs):
 
+        tot_dloss, tot_gloss = 0
+        Ng = Nd = 0
         for X, _ in tqdm.tqdm(train_loader):
 
             X = X.to(device)
 
+            pos_labels = torch.ones((batch_size, ))
+            neg_labels = torch.zeros((batch_size, ))
+
             # Forward pass for training the discriminator
             positive_logits, negative_logits, _ = model(X)
 
-            pos_labels = torch.ones((batch_size, ))
-            neg_labels = torch.zeros((batch_size, ))
             Dloss = loss(positive_logits, pos_labels) + \
                     loss(negative_logits, neg_labels)
-            print(Dloss.item())
+            dloss_e = Dloss.item()
+
             optim_discriminator.zero_grad()
             Dloss.backward()
             optim_discriminator.step()
@@ -92,7 +96,24 @@ def train(args):
             # Forward pass for training the generator
             optim_generator.zero_grad()
             _, negative_logits, _ = model(None)
-            Gloss = None
+
+            # The generator wants his generated images to be positive
+            Gloss = loss(negative_logits, pos_labels)
+            gloss_e = Gloss.item()
+
+            optim_generator.zero_grad()
+            Gloss.backward()
+            optim_generator.step()
+
+            Nd += 2*batch_size
+            tot_dloss += (batch_size * dloss_e)
+            Ng += batch_size
+            tot_gloss += (batch_size * gloss_e)
+
+        print(f"D loss : {tot_dloss/Nd} ; G loss : {tot_gloss/Ng}")
+
+
+
 
 
 def generate(args):
