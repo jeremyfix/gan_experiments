@@ -85,6 +85,8 @@ class Discriminator(nn.Module):
         self.img_shape = img_shape
 
         in_C = img_shape[0]
+        # Note: the output receptive field size is 36 x 36
+        #       the output representation size is 3 x 3
         self.cnn = nn.Sequential(
             *conv_bn_relu(in_C, 32),
             *conv_bn_relu(32, 32),
@@ -92,8 +94,8 @@ class Discriminator(nn.Module):
             *conv_bn_relu(32, 32),
             *conv_bn_relu(32, 32),
             nn.MaxPool2d(kernel_size=2),
-            *conv_bn_relu(32, 32),
-            *conv_bn_relu(32, 32),
+            *conv_bn_relu(32, 64),
+            *conv_bn_relu(64, 64),
             nn.MaxPool2d(kernel_size=2)
         )
 
