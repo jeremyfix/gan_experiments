@@ -77,7 +77,9 @@ class GAN(nn.Module):
         """
 
         # Step 1
-        generated_images = self.generator()
+        batch_size = X.shape[0]
+        generated_images = self.generator(batch_size=batch_size)
+        print(generated_images.shape)
 
         positive_logits = self.discriminator(X)
         negative_logits = self.discriminator(X)
@@ -136,6 +138,16 @@ class Discriminator(nn.Module):
         return out_classif
 
 
+def tconv_bn_relu(in_channels, out_channels,
+                  ksize, stride, pad):
+    return [
+            nn.ConvTranspose2d(in_channels, out_channels,
+                               ksize, stride, pad, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU()
+    ]
+
+
 class Generator(nn.Module):
     """
     The generator network generates image from random inputs
@@ -149,7 +161,34 @@ class Generator(nn.Module):
         """
         super(Generator, self).__init__()
         self.img_shape = img_shape
+        self.latent_size = 100
+
+        base_c = 64
+        self.model = nn.Sequential(
+            *tconv_bn_relu(self.latent_size, base_c*3, 3, 1, 0),
+            *tconv_bn_relu(base_c*3, base_c*2, 5, 2, 1),
+            *tconv_bn_relu(base_c*2, base_c, 4, 2, 1),
+            *tconv_bn_relu(base_c, self.img_shape[0], 4, 2, 1)
+        )
 
     def forward(self,
-                X: Optional[torch.Tensor] = None) -> torch.Tensor:
-        pass
+                X: Optional[torch.Tensor] = None,
+                batch_size: Optional[float] = None) -> torch.Tensor:
+        """
+        Forward pass of the generator. You can either provide a noise
+        input vector or specify the batch_size to let it generate the input
+        """
+        # X is expected to be a 2D tensor (B, L)
+        if X is None:
+            assert(batch_size is not None)
+            X = torch.randn(batch_size, self.latent_size)
+        else:
+            if len(X.shape) != 2:
+                raise RuntimeError("Expected a 2D tensor as input to the "
+                                   f" generator got a {len(X.shape)}D tensor.")
+        # Make X a 1x1 image like tensor
+        X = X.unsqueeze(dim=2).unsqueeze(dim=3)
+
+        out = self.model(X)
+
+        return out

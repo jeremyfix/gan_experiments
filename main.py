@@ -47,10 +47,6 @@ def train(args):
     model = models.GAN(img_shape, dropout)
     model.to(device)
 
-    X, _ = next(iter(train_loader))
-    X = X.to(device)
-    generated_images, positive_logits, negative_logits = model(X)
-
     # Callbacks
     summary_text = "## Summary of the model architecture\n" + \
             f"{deepcs.display.torch_summarize(model)}\n"
@@ -61,6 +57,10 @@ def train(args):
     logger.info(summary_text)
 
     # Training loop
+
+    X, _ = next(iter(train_loader))
+    X = X.to(device)
+    generated_images, positive_logits, negative_logits = model(X)
 
 
 def generate(args):
