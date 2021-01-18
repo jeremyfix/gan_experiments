@@ -24,10 +24,10 @@ def dropout_linear(dim_in, dim_out, p_drop):
 def dropout_linear_relu(dim_in, dim_out, p_drop):
     return [nn.Dropout(p_drop),
             nn.Linear(dim_in, dim_out),
-            nn.ReLU(inplace=True)]
+            nn.ReLU()]
 
 
-def conv_bn_relu(in_channels, out_channels):
+def conv_bn_leakyrelu(in_channels, out_channels):
     """
     Conv - BN - Relu
     """
@@ -38,20 +38,35 @@ def conv_bn_relu(in_channels, out_channels):
                       padding=int((ks-1)/2),
                       bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)]
+            nn.LeakyReLU(negative_slope=0.2)]
+
+
+def conv_downsampling(channels):
+    """
+    Conv stride 2
+    """
+    ks = 3
+    return [nn.Conv2d(channels, channels,
+                      kernel_size=ks,
+                      stride=2,
+                      padding=int((ks-1)/2),
+                      bias=True),
+            nn.LeakyReLU(negative_slope=0.2)]
 
 
 class GAN(nn.Module):
 
     def __init__(self,
-                 img_shape: Tuple[int, int, int]) -> None:
+                 img_shape: Tuple[int, int, int],
+                 dropout: float) -> None:
         """
         Args:
             img_shape : (C, H, W) image shapes
+            dropout (float): The probability of zeroing before the FC layers
         """
         super(GAN, self).__init__()
         self.img_shape = img_shape
-        self.discriminator = Discriminator(img_shape)
+        self.discriminator = Discriminator(img_shape, dropout)
         self.generator = Generator(img_shape)
 
     def forward(self, X):
@@ -76,10 +91,12 @@ class Discriminator(nn.Module):
     """
 
     def __init__(self,
-                 img_shape: Tuple[int, int, int]) -> None:
+                 img_shape: Tuple[int, int, int],
+                 dropout: float) -> None:
         """
         Args:
             img_shape : (C, H, W) image shapes
+            dropout (float) the probability of zeroing before the FC layer
         """
         super(Discriminator, self).__init__()
         self.img_shape = img_shape
@@ -88,15 +105,15 @@ class Discriminator(nn.Module):
         # Note: the output receptive field size is 36 x 36
         #       the output representation size is 3 x 3
         self.cnn = nn.Sequential(
-            *conv_bn_relu(in_C, 32),
-            *conv_bn_relu(32, 32),
-            nn.MaxPool2d(kernel_size=2),
-            *conv_bn_relu(32, 32),
-            *conv_bn_relu(32, 32),
-            nn.MaxPool2d(kernel_size=2),
-            *conv_bn_relu(32, 64),
-            *conv_bn_relu(64, 64),
-            nn.MaxPool2d(kernel_size=2)
+            *conv_bn_leakyrelu(in_C, 32),
+            *conv_bn_leakyrelu(32, 32),
+            *conv_downsampling(32),
+            *conv_bn_leakyrelu(32, 32),
+            *conv_bn_leakyrelu(32, 32),
+            *conv_downsampling(32),
+            *conv_bn_leakyrelu(32, 64),
+            *conv_bn_leakyrelu(64, 64),
+            *conv_downsampling(64)
         )
 
         # Compute the size of the representation by forward propagating
@@ -107,6 +124,7 @@ class Discriminator(nn.Module):
         num_features = reduce(operator.mul, out_cnn.shape[1:])
 
         self.classif = nn.Sequential(
+            nn.Dropout(dropout),
             nn.Linear(num_features, 1)
         )
 

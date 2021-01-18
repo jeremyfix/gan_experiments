@@ -4,8 +4,15 @@
 # Standard imports
 import argparse
 import logging
+import sys
 # External imports
 import torch
+import deepcs
+import deepcs.display
+from deepcs.training import train as ftrain, ModelCheckpoint
+from deepcs.testing import test as ftest
+from deepcs.fileutils import generate_unique_logpath
+import deepcs.metrics
 # Local imports
 import data
 import models
@@ -22,6 +29,7 @@ def train(args):
     dataset_root = args.dataset_root
     nthreads = args.nthreads
     batch_size = args.batch_size
+    dropout = args.dropout
     debug = args.debug
 
     use_cuda = torch.cuda.is_available()
@@ -36,12 +44,21 @@ def train(args):
                                                                 small_experiment=debug)
 
     # Model definition
-    model = models.GAN(img_shape)
+    model = models.GAN(img_shape, dropout)
     model.to(device)
 
     X, _ = next(iter(train_loader))
     X = X.to(device)
     generated_images, positive_logits, negative_logits = model(X)
+
+    # Callbacks
+    summary_text = "## Summary of the model architecture\n" + \
+            f"{deepcs.display.torch_summarize(model)}\n"
+    summary_text += "\n\n## Executed command :\n" +\
+        "{}".format(" ".join(sys.argv))
+    summary_text += "\n\n## Args : \n {}".format(args)
+
+    logger.info(summary_text)
 
     # Training loop
 
@@ -84,6 +101,12 @@ if __name__ == '__main__':
     parser.add_argument("--debug",
                         action="store_true",
                         help="Whether to use small datasets")
+
+    # Regularization
+    parser.add_argument("--dropout",
+                       type=float,
+                       help="The probability of zeroing before the FC layers",
+                       default=0.5)
 
     args = parser.parse_args()
 
