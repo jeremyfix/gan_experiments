@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# coding: utf-8
 
 # Standard imports
 import argparse
@@ -7,6 +8,7 @@ import logging
 import torch
 # Local imports
 import data
+import models
 
 
 def train(args):
@@ -32,6 +34,9 @@ def train(args):
                                                                  dataset="MNIST")
 
     # Model definition
+    model = models.GAN(img_shape)
+    X, _ = next(iter(train_loader))
+    generated_images, positive_logits, negative_logits = model(X)
 
     # Training loop
 
