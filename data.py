@@ -12,6 +12,7 @@ import torchvision.transforms as transforms
 _DEFAULT_DATASET_ROOT = "/opt/Datasets"
 _DEFAULT_MNIST_DIGIT = 6
 
+
 def get_dataloaders(dataset_root: Union[str, Path],
                     cuda: bool,
                     batch_size: int = 64,
@@ -28,11 +29,10 @@ def get_dataloaders(dataset_root: Union[str, Path],
         n_threads (int): the number of threads to use for dataloading
         dataset (str): the dataset to load
         val_size (float): the proportion of data for the validation set
-        
     """
 
     datasets = ["MNIST"]
-    if not dataset in datasets:
+    if dataset not in datasets:
         raise NotImplementedError(f"Cannot import the dataset {dataset}."
                                   f" Available datasets are {datasets}")
 
@@ -70,7 +70,7 @@ def get_dataloaders(dataset_root: Union[str, Path],
                                                    shuffle=True,
                                                    num_workers=n_threads)
 
-        img_shape = dataset[0][0].shape # C, H, W
+        img_shape = dataset[0][0].shape  # C, H, W
 
     return train_loader, valid_loader, img_shape
 
@@ -94,6 +94,7 @@ def test_mnist():
     plt.figure()
     plt.imshow(np.transpose(grid.numpy(), (1, 2, 0)), cmap='gray_r')
     plt.show()
+
 
 if __name__ == '__main__':
     test_mnist()
