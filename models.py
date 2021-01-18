@@ -3,9 +3,42 @@
 
 # Standard imports
 from typing import Optional, Tuple
+from functools import reduce
+import operator
 # External imports
 import torch
 import torch.nn as nn
+
+
+def bn_dropout_linear(dim_in, dim_out, p_drop):
+    return [nn.BatchNorm1d(dim_in),
+            nn.Dropout(p_drop),
+            nn.Linear(dim_in, dim_out)]
+
+
+def dropout_linear(dim_in, dim_out, p_drop):
+    return [nn.Dropout(p_drop),
+            nn.Linear(dim_in, dim_out)]
+
+
+def dropout_linear_relu(dim_in, dim_out, p_drop):
+    return [nn.Dropout(p_drop),
+            nn.Linear(dim_in, dim_out),
+            nn.ReLU(inplace=True)]
+
+
+def conv_bn_relu(in_channels, out_channels):
+    """
+    Conv - BN - Relu
+    """
+    ks = 3
+    return [nn.Conv2d(in_channels, out_channels,
+                      kernel_size=ks,
+                      stride=1,
+                      padding=int((ks-1)/2),
+                      bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)]
 
 
 class GAN(nn.Module):
@@ -51,13 +84,36 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.img_shape = img_shape
 
+        in_C = img_shape[0]
         self.cnn = nn.Sequential(
+            *conv_bn_relu(in_C, 32),
+            *conv_bn_relu(32, 32),
+            nn.MaxPool2d(kernel_size=2),
+            *conv_bn_relu(32, 32),
+            *conv_bn_relu(32, 32),
+            nn.MaxPool2d(kernel_size=2),
+            *conv_bn_relu(32, 32),
+            *conv_bn_relu(32, 32),
+            nn.MaxPool2d(kernel_size=2)
+        )
 
+        # Compute the size of the representation by forward propagating
+        # a fake tensor; This can be cpu tensor as the model is not yet
+        # built and therefore not yet transfered to the GPU
+        fake_input = torch.zeros((1, *img_shape))
+        out_cnn = self.cnn(fake_input)
+        num_features = reduce(operator.mul, out_cnn.shape[1:])
+
+        self.classif = nn.Sequential(
+            nn.Linear(num_features, 1)
         )
 
     def forward(self,
                 X: torch.Tensor) -> torch.Tensor:
-        pass
+        out_cnn = self.cnn(X)
+        input_classif = out_cnn.view((out_cnn.shape[0], -1))
+        out_classif = self.classif(input_classif)
+        return out_classif
 
 
 class Generator(nn.Module):

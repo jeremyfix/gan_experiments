@@ -35,7 +35,10 @@ def train(args):
 
     # Model definition
     model = models.GAN(img_shape)
+    model.to(device)
+
     X, _ = next(iter(train_loader))
+    X = X.to(device)
     generated_images, positive_logits, negative_logits = model(X)
 
     # Training loop
