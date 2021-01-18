@@ -168,7 +168,8 @@ class Generator(nn.Module):
             *tconv_bn_relu(self.latent_size, base_c*3, 3, 1, 0),
             *tconv_bn_relu(base_c*3, base_c*2, 5, 2, 1),
             *tconv_bn_relu(base_c*2, base_c, 4, 2, 1),
-            *tconv_bn_relu(base_c, self.img_shape[0], 4, 2, 1)
+            *tconv_bn_relu(base_c, self.img_shape[0], 4, 2, 1),
+            nn.Tanh()  # as suggested by [Radford, 2016]
         )
 
     def forward(self,
