@@ -22,6 +22,7 @@ def train(args):
     dataset_root = args.dataset_root
     nthreads = args.nthreads
     batch_size = args.batch_size
+    debug = args.debug
 
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda') if use_cuda else torch.device('cpu')
@@ -31,7 +32,8 @@ def train(args):
                                                                  cuda=use_cuda,
                                                                  batch_size=batch_size,
                                                                  n_threads = nthreads,
-                                                                 dataset="MNIST")
+                                                                 dataset="MNIST", 
+                                                                small_experiment=debug)
 
     # Model definition
     model = models.GAN(img_shape)
@@ -60,6 +62,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("command",
                         choices=['train', 'generate'])
+
+    # Data parameters
     parser.add_argument("--dataset",
                         choices=["MNIST"],
                         help="Which dataset to use")
@@ -67,14 +71,19 @@ if __name__ == '__main__':
                        type=str,
                        help="The root dir where the datasets are stored",
                        default=data._DEFAULT_DATASET_ROOT)
-    parser.add_argument("--batch_size",
-                       type=int,
-                       help="The size of a minibatch",
-                       default=64)
     parser.add_argument("--nthreads",
                        type=int,
                        help="The number of threads to use for loading the data",
                        default=6)
+
+    # Training parameters
+    parser.add_argument("--batch_size",
+                       type=int,
+                       help="The size of a minibatch",
+                       default=64)
+    parser.add_argument("--debug",
+                        action="store_true",
+                        help="Whether to use small datasets")
 
     args = parser.parse_args()
 

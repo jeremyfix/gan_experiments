@@ -18,7 +18,8 @@ def get_dataloaders(dataset_root: Union[str, Path],
                     batch_size: int = 64,
                     n_threads: int = 4,
                     dataset: str = "MNIST",
-                    val_size: float = 0.2):
+                    val_size: float = 0.2,
+                    small_experiment: bool = False):
     """
     Build and return the pytorch dataloaders
 
@@ -29,6 +30,8 @@ def get_dataloaders(dataset_root: Union[str, Path],
         n_threads (int): the number of threads to use for dataloading
         dataset (str): the dataset to load
         val_size (float): the proportion of data for the validation set
+        small_experiment (bool): wheter or not to use a small 
+                                 dataset (usefull for debuging)
     """
 
     datasets = ["MNIST"]
@@ -49,28 +52,31 @@ def get_dataloaders(dataset_root: Union[str, Path],
         dataset = torch.utils.data.ConcatDataset([train_dataset,
                                                  test_dataset])
         # And keep only the 6 from it
-        idx_to_keep=[si for (si, (x,y)) in enumerate(dataset) if y == _DEFAULT_MNIST_DIGIT]
-        dataset = torch.utils.data.Subset(dataset, idx_to_keep)
+        # idx_to_keep=[si for (si, (x,y)) in enumerate(dataset) if y == _DEFAULT_MNIST_DIGIT]
+        # dataset = torch.utils.data.Subset(dataset, idx_to_keep)
 
-        # Split the dataset in train/valid
-        indices = np.arange(len(dataset))
-        np.random.shuffle(indices)
-        split_idx = int(val_size * len(dataset))
-        valid_indices, train_indices = indices[:split_idx], indices[split_idx:]
 
-        train_dataset = torch.utils.data.Subset(dataset, train_indices)
-        valid_dataset = torch.utils.data.Subset(dataset, valid_indices)
+    if small_experiment:
+        dataset = torch.utils.data.Subset(dataset, range(batch_size))
+    # Split the dataset in train/valid
+    indices = np.arange(len(dataset))
+    np.random.shuffle(indices)
+    split_idx = int(val_size * len(dataset))
+    valid_indices, train_indices = indices[:split_idx], indices[split_idx:]
 
-        train_loader = torch.utils.data.DataLoader(train_dataset,
-                                                   batch_size=batch_size,
-                                                   shuffle=True,
-                                                   num_workers=n_threads)
-        valid_loader = torch.utils.data.DataLoader(valid_dataset,
-                                                   batch_size=batch_size,
-                                                   shuffle=True,
-                                                   num_workers=n_threads)
+    train_dataset = torch.utils.data.Subset(dataset, train_indices)
+    valid_dataset = torch.utils.data.Subset(dataset, valid_indices)
 
-        img_shape = dataset[0][0].shape  # C, H, W
+    train_loader = torch.utils.data.DataLoader(train_dataset,
+                                               batch_size=batch_size,
+                                               shuffle=True,
+                                               num_workers=n_threads)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset,
+                                               batch_size=batch_size,
+                                               shuffle=True,
+                                               num_workers=n_threads)
+
+    img_shape = dataset[0][0].shape  # C, H, W
 
     return train_loader, valid_loader, img_shape
 
