@@ -85,28 +85,29 @@ if __name__ == '__main__':
                         choices=["MNIST"],
                         help="Which dataset to use")
     parser.add_argument("--dataset_root",
-                       type=str,
-                       help="The root dir where the datasets are stored",
-                       default=data._DEFAULT_DATASET_ROOT)
+                        type=str,
+                        help="The root dir where the datasets are stored",
+                        default=data._DEFAULT_DATASET_ROOT)
     parser.add_argument("--nthreads",
-                       type=int,
-                       help="The number of threads to use for loading the data",
-                       default=6)
+                        type=int,
+                        help="The number of threads to use "
+                        "for loading the data",
+                        default=6)
 
     # Training parameters
     parser.add_argument("--batch_size",
-                       type=int,
-                       help="The size of a minibatch",
-                       default=64)
+                        type=int,
+                        help="The size of a minibatch",
+                        default=64)
     parser.add_argument("--debug",
                         action="store_true",
                         help="Whether to use small datasets")
 
     # Regularization
     parser.add_argument("--dropout",
-                       type=float,
-                       help="The probability of zeroing before the FC layers",
-                       default=0.5)
+                        type=float,
+                        help="The probability of zeroing before the FC layers",
+                        default=0.5)
 
     args = parser.parse_args()
 
