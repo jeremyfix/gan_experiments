@@ -73,7 +73,7 @@ def train(args):
     # Training loop
     for e in range(num_epochs):
 
-        tot_dloss, tot_gloss = 0
+        tot_dloss = tot_gloss = 0
         Ng = Nd = 0
         for X, _ in tqdm.tqdm(train_loader):
 
