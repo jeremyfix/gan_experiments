@@ -58,22 +58,20 @@ class GAN(nn.Module):
 
     def __init__(self,
                  img_shape: Tuple[int, int, int],
-                 dropout: float,
-                 batch_size: int) -> None:
+                 dropout: float) -> None:
         """
         Args:
             img_shape : (C, H, W) image shapes
             dropout (float): The probability of zeroing before the FC layers
-            batch_size (int) : The size of the minibatch when generating images
         """
         super(GAN, self).__init__()
         self.img_shape = img_shape
-        self.batch_size = batch_size
         self.discriminator = Discriminator(img_shape, dropout)
         self.generator = Generator(img_shape)
 
     def forward(self,
-                X: Optional[torch.Tensor]):
+                X: Optional[torch.Tensor],
+                batch_size: Optional[float]):
         """
         Given true images, returns the generated tensors
         and the logits of the discriminator for both the generated tensors
@@ -84,12 +82,17 @@ class GAN(nn.Module):
                                want the logits for the generated images
         """
 
+        if X is None and batch_size is None:
+            raise RuntimeError("Not both X and batch_size can be None")
+
         if X is not None:
             positive_logits = self.discriminator(X)
+            batch_size = X.shape[0]
         else:
             positive_logits = None
+            batch_size = batch_size
 
-        generated_images = self.generator(batch_size=self.batch_size)
+        generated_images = self.generator(batch_size=batch_size)
         negative_logits = self.discriminator(generated_images)
 
         return positive_logits, negative_logits, generated_images

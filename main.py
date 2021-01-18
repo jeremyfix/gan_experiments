@@ -48,7 +48,7 @@ def train(args):
                                                                 small_experiment=debug)
 
     # Model definition
-    model = models.GAN(img_shape, dropout, batch_size)
+    model = models.GAN(img_shape, dropout)
     model.to(device)
 
     # Optimizers
@@ -78,12 +78,13 @@ def train(args):
         for X, _ in tqdm.tqdm(train_loader):
 
             X = X.to(device)
+            bi = X.shape[0]
 
-            pos_labels = torch.ones((batch_size, )).to(device)
-            neg_labels = torch.zeros((batch_size, )).to(device)
+            pos_labels = torch.ones((bi, )).to(device)
+            neg_labels = torch.zeros((bi, )).to(device)
 
             # Forward pass for training the discriminator
-            positive_logits, negative_logits, _ = model(X)
+            positive_logits, negative_logits, _ = model(X, None)
 
             Dloss = loss(positive_logits, pos_labels) + \
                     loss(negative_logits, neg_labels)
@@ -95,7 +96,7 @@ def train(args):
 
             # Forward pass for training the generator
             optim_generator.zero_grad()
-            _, negative_logits, _ = model(None)
+            _, negative_logits, _ = model(None, batch_size=bi)
 
             # The generator wants his generated images to be positive
             Gloss = loss(negative_logits, pos_labels)
@@ -105,9 +106,9 @@ def train(args):
             Gloss.backward()
             optim_generator.step()
 
-            Nd += 2*batch_size
+            Nd += 2*bi
             tot_dloss += (batch_size * dloss_e)
-            Ng += batch_size
+            Ng += bi
             tot_gloss += (batch_size * gloss_e)
 
         print(f"D loss : {tot_dloss/Nd} ; G loss : {tot_gloss/Ng}")
