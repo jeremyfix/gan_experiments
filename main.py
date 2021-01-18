@@ -79,8 +79,8 @@ def train(args):
 
             X = X.to(device)
 
-            pos_labels = torch.ones((batch_size, ))
-            neg_labels = torch.zeros((batch_size, ))
+            pos_labels = torch.ones((batch_size, )).to(device)
+            neg_labels = torch.zeros((batch_size, )).to(device)
 
             # Forward pass for training the discriminator
             positive_logits, negative_logits, _ = model(X)
