@@ -86,16 +86,16 @@ class GAN(nn.Module):
             raise RuntimeError("Not both X and batch_size can be None")
 
         if X is not None:
-            positive_logits = self.discriminator(X)
+            real_logits = self.discriminator(X)
             batch_size = X.shape[0]
         else:
-            positive_logits = None
+            real_logits = None
             batch_size = batch_size
 
-        generated_images = self.generator(batch_size=batch_size)
-        negative_logits = self.discriminator(generated_images)
+        fake_images = self.generator(batch_size=batch_size)
+        fake_logits = self.discriminator(fake_images)
 
-        return positive_logits, negative_logits, generated_images
+        return real_logits, fake_logits, fake_images
 
 
 class Discriminator(nn.Module):

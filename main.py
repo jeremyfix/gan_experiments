@@ -98,10 +98,10 @@ def train(args):
             neg_labels = torch.zeros((bi, )).to(device)
 
             # Forward pass for training the discriminator
-            positive_logits, negative_logits, _ = model(X, None)
+            real_logits, fake_logits, _ = model(X, None)
 
-            Dloss = loss(positive_logits, pos_labels) + \
-                    loss(negative_logits, neg_labels)
+            Dloss = loss(real_logits, pos_labels) + \
+                    loss(fake_logits, neg_labels)
             dloss_e = Dloss.item()
 
             optim_discriminator.zero_grad()
@@ -110,10 +110,10 @@ def train(args):
 
             # Forward pass for training the generator
             optim_generator.zero_grad()
-            _, negative_logits, _ = model(None, batch_size=bi)
+            _, fake_logits, _ = model(None, batch_size=bi)
 
             # The generator wants his generated images to be positive
-            Gloss = loss(negative_logits, pos_labels)
+            Gloss = loss(fake_logits, pos_labels)
             gloss_e = Gloss.item()
 
             optim_generator.zero_grad()
@@ -129,8 +129,10 @@ def train(args):
 
         # Generate few samples from the generator
         model.eval()
-        _, _, generated_images = model(None, batch_size=16)
-        grid = torchvision.utils.make_grid(generated_images, nrow=4, normalize=True,
+        _, _, fake_images = model(None, batch_size=16)
+        grid = torchvision.utils.make_grid(fake_images,
+                                           nrow=4,
+                                           normalize=True,
                                            range=(-1, 1))
         tensorboard_writer.add_image("Generated", grid, e)
         torchvision.utils.save_image(grid, 'images.png')
@@ -176,15 +178,15 @@ if __name__ == '__main__':
     parser.add_argument("--num_epochs",
                         type=int,
                         help="The number of epochs to train for",
-                        default=10)
+                        default=50)
     parser.add_argument("--batch_size",
                         type=int,
                         help="The size of a minibatch",
-                        default=64)
+                        default=128)
     parser.add_argument("--base_lr",
                         type=float,
                         help="The initial learning rate to use",
-                        default=0.0002)
+                        default=0.0001)
     parser.add_argument("--debug",
                         action="store_true",
                         help="Whether to use small datasets")
