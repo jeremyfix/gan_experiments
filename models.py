@@ -123,12 +123,15 @@ class Discriminator(nn.Module):
             *conv_bn_leakyrelu(in_C, 32),
             *conv_bn_leakyrelu(32, 32),
             *conv_downsampling(32),
+            nn.Dropout2d(dropout), 
             *conv_bn_leakyrelu(32, 32),
             *conv_bn_leakyrelu(32, 32),
             *conv_downsampling(32),
+            nn.Dropout2d(dropout), 
             *conv_bn_leakyrelu(32, 64),
             *conv_bn_leakyrelu(64, 64),
-            *conv_downsampling(64)
+            *conv_downsampling(64),
+            nn.Dropout2d(dropout) 
         )
 
         # Compute the size of the representation by forward propagating
@@ -139,7 +142,6 @@ class Discriminator(nn.Module):
         num_features = reduce(operator.mul, out_cnn.shape[1:])
 
         self.classif = nn.Sequential(
-            nn.Dropout(dropout),
             nn.Linear(num_features, 1)
         )
 

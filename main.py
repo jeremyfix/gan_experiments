@@ -195,7 +195,7 @@ if __name__ == '__main__':
     parser.add_argument("--dropout",
                         type=float,
                         help="The probability of zeroing before the FC layers",
-                        default=0.5)
+                        default=0.3)
 
     args = parser.parse_args()
 
