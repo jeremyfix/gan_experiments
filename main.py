@@ -122,34 +122,40 @@ def train(args):
     # Training loop
     for e in range(num_epochs):
 
-        tot_dloss = tot_gloss = 0
-        Ng = Nd = 0
+        tot_closs = tot_gloss = 0
+        Nc = Ng = 0
         model.train()
         for ei, (X, _) in tqdm.tqdm(enumerate(train_loader)):
-            
+
             # X is a batch of real data
             X = X.to(device)
             bi = X.shape[0]
-            
+
             # Optimize the critic
             real_values, fake_values, _ = model(X, None)
-            critic_loss = real_values.mean() - fake_values.mean()
+            critic_loss = -(real_values.mean() - fake_values.mean())
             optim_discriminator.zero_grad()
             critic_loss.backward()
             optim_discriminator.step()
 
             # Optimize the generator
             if ei % nc == 0:
-                pass
+                _, fake_values, _ = model(None, batch_size)
+                generator_loss = -fake_values.mean()
+                optim_generator.zero_grad()
+                generator_loss.backward()
+                optim_generator.step()
 
+            Nc += 2*bi
+            tot_closs += (bi * critic_loss.item())
+            Ng += bi
+            tot_gloss += (bi * generator_loss.item())
+        tot_closs /= Nc
+        tot_gloss /= Ng
+        print(f"C loss : {tot_closs} ; G loss : {tot_gloss}")
 
-
-            # Nd += 2*bi
-            # tot_dloss += (batch_size * dloss_e)
-            # Ng += bi
-            # tot_gloss += (batch_size * gloss_e)
-
-        print(f"D loss : {tot_dloss/Nd} ; G loss : {tot_gloss/Ng}")
+        tensorboard_writer.add_scalar("Critic loss", tot_closs, e+1)
+        tensorboard_writer.add_scalar("Generator loss", tot_gloss, e+1)
 
         # Generate few samples from the generator
         model.eval()
@@ -159,11 +165,6 @@ def train(args):
                                            normalize=True,
                                            range=(-1, 1))
         tensorboard_writer.add_image("Generated", grid, e+1)
-
-
-
-
-
 
 
 def generate(args):
