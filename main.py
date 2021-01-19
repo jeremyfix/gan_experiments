@@ -87,12 +87,10 @@ def train(args):
     # Optimizers
     critic = model.discriminator
     generator = model.generator
-    optim_critic = optim.Adam(critic.parameters(),
-                              betas=[0.5, 0.999],
-                              lr=base_lr)
-    optim_generator = optim.Adam(generator.parameters(),
-                                 betas=[0.5, 0.999],
+    optim_critic = optim.RMSprop(critic.parameters(),
                                  lr=base_lr)
+    optim_generator = optim.RMSprop(generator.parameters(),
+                                    lr=base_lr)
 
     # Callbacks
     summary_text = "## Summary of the model architecture\n" + \
