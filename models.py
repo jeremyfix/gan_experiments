@@ -154,12 +154,16 @@ class Discriminator(nn.Module):
 
 
 def tconv_bn_relu(in_channels, out_channels,
-                  ksize, stride, pad):
+                  ksize, stride, pad, opad):
     return [
             nn.ConvTranspose2d(in_channels, out_channels,
-                               ksize, stride, pad, bias=False),
+                               kernel_size=ksize,
+                               stride=stride,
+                               padding=pad,
+                               output_padding=opad,
+                               bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU()
+            nn.LeakyReLU(negative_slope=0.2)
     ]
 
 
@@ -179,11 +183,16 @@ class Generator(nn.Module):
         self.latent_size = 100
 
         base_c = 64
+        self.upscale = nn.Sequential(
+            nn.Linear(self.latent_size, 7*7*256, bias=False),
+            nn.BatchNorm1d(7*7*256),
+            nn.LeakyReLU(negative_slope=0.2)
+        )
+
         self.model = nn.Sequential(
-            *tconv_bn_relu(self.latent_size, base_c*3, 3, 1, 0),
-            *tconv_bn_relu(base_c*3, base_c*2, 5, 2, 1),
-            *tconv_bn_relu(base_c*2, base_c, 4, 2, 1),
-            *tconv_bn_relu(base_c, self.img_shape[0], 4, 2, 1),
+            *tconv_bn_relu(base_c*4, base_c*2, 5, 1, 2, 0),
+            *tconv_bn_relu(base_c*2, base_c*1, 5, 2, 2, 1),
+            *tconv_bn_relu(base_c, self.img_shape[0], 5, 2, 2, 1),
             nn.Tanh()  # as suggested by [Radford, 2016]
         )
 
@@ -204,8 +213,48 @@ class Generator(nn.Module):
                 raise RuntimeError("Expected a 2D tensor as input to the "
                                    f" generator got a {len(X.shape)}D tensor.")
         # Make X a 1x1 image like tensor
-        X = X.unsqueeze(dim=2).unsqueeze(dim=3)
 
-        out = self.model(X)
+        upscaled = self.upscale(X)
+        upscaled = upscaled.view(-1, 256, 7, 7)
+        out = self.model(upscaled)
 
         return out
+
+def test_tconv():
+    layers = nn.Sequential(
+        nn.Conv2d(20, 10, kernel_size=3, stride=1, padding=2)
+    )
+    print(layers)
+    inputs = torch.zeros((1, 20, 2, 2))
+    outputs = layers(inputs)
+    print(outputs.shape)
+   
+    imagify = nn.Linear(100, 7*7*10)
+    conv1 = nn.ConvTranspose2d(10, 10,
+                                kernel_size=5,
+                                stride=1,
+                                padding=2)
+    conv2 = nn.ConvTranspose2d(10, 10,
+                               kernel_size=5,
+                               stride=2,
+                               padding=2,
+                               output_padding=1)
+    conv3 = nn.ConvTranspose2d(10, 1,
+                               kernel_size=5,
+                               stride=2,
+                               padding=2,
+                               output_padding=1)
+
+    X = torch.randn(64, 100)
+    X = imagify(X).view(-1, 10, 7, 7)
+    print(X.shape)
+    X = conv1(X)
+    print(X.shape)
+    X = conv2(X)
+    print(X.shape)
+    X = conv3(X)
+    print(X.shape)
+
+
+if __name__ == '__main__':
+    test_tconv()

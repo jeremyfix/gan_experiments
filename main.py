@@ -83,6 +83,15 @@ def train(args):
 
     logger.info(f">>>>> Results saved in {logdir}")
 
+    # Generate few samples from the generator
+    model.eval()
+    _, _, fake_images = model(None, batch_size=16)
+    grid = torchvision.utils.make_grid(fake_images,
+                                       nrow=4,
+                                       normalize=True)
+    tensorboard_writer.add_image("Generated", grid, 0)
+    torchvision.utils.save_image(grid, 'images.png')
+
     # Training loop
     for e in range(num_epochs):
 
@@ -134,8 +143,7 @@ def train(args):
                                            nrow=4,
                                            normalize=True,
                                            range=(-1, 1))
-        tensorboard_writer.add_image("Generated", grid, e)
-        torchvision.utils.save_image(grid, 'images.png')
+        tensorboard_writer.add_image("Generated", grid, e+1)
 
 
 
