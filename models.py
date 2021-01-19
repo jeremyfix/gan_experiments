@@ -101,7 +101,7 @@ class GAN(nn.Module):
 class Discriminator(nn.Module):
     """
     The discriminator network tells if the input image is real or not
-    The output logit is supposed to be high(-ly positive) for real images 
+    The output logit is supposed to be high(-ly positive) for real images
     and low (highly negative) for fake images
     """
 
@@ -123,15 +123,15 @@ class Discriminator(nn.Module):
             *conv_bn_leakyrelu(in_C, 32),
             *conv_bn_leakyrelu(32, 32),
             *conv_downsampling(32),
-            nn.Dropout2d(dropout), 
+            nn.Dropout2d(dropout),
             *conv_bn_leakyrelu(32, 32),
             *conv_bn_leakyrelu(32, 32),
             *conv_downsampling(32),
-            nn.Dropout2d(dropout), 
+            nn.Dropout2d(dropout),
             *conv_bn_leakyrelu(32, 64),
             *conv_bn_leakyrelu(64, 64),
             *conv_downsampling(64),
-            nn.Dropout2d(dropout) 
+            nn.Dropout2d(dropout)
         )
 
         # Compute the size of the representation by forward propagating
@@ -220,6 +220,7 @@ class Generator(nn.Module):
 
         return out
 
+
 def test_tconv():
     layers = nn.Sequential(
         nn.Conv2d(20, 10, kernel_size=3, stride=1, padding=2)
@@ -228,12 +229,12 @@ def test_tconv():
     inputs = torch.zeros((1, 20, 2, 2))
     outputs = layers(inputs)
     print(outputs.shape)
-   
+
     imagify = nn.Linear(100, 7*7*10)
     conv1 = nn.ConvTranspose2d(10, 10,
-                                kernel_size=5,
-                                stride=1,
-                                padding=2)
+                               kernel_size=5,
+                               stride=1,
+                               padding=2)
     conv2 = nn.ConvTranspose2d(10, 10,
                                kernel_size=5,
                                stride=2,
