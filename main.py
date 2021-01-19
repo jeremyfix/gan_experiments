@@ -67,6 +67,7 @@ def train(args):
     base_lr = args.base_lr
     num_epochs = args.num_epochs
     nc = args.ncritic
+    clip = args.clip
 
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda') if use_cuda else torch.device('cpu')
@@ -84,10 +85,12 @@ def train(args):
     model.to(device)
 
     # Optimizers
-    optim_discriminator = optim.Adam(model.discriminator.parameters(),
-                                     betas=[0.5, 0.999],
-                                     lr=base_lr)
-    optim_generator = optim.Adam(model.generator.parameters(),
+    critic = model.discriminator
+    generator = model.generator
+    optim_critic = optim.Adam(critic.parameters(),
+                              betas=[0.5, 0.999],
+                              lr=base_lr)
+    optim_generator = optim.Adam(generator.parameters(),
                                  betas=[0.5, 0.999],
                                  lr=base_lr)
 
@@ -134,9 +137,14 @@ def train(args):
             # Optimize the critic
             real_values, fake_values, _ = model(X, None)
             critic_loss = -(real_values.mean() - fake_values.mean())
-            optim_discriminator.zero_grad()
+            optim_critic.zero_grad()
             critic_loss.backward()
-            optim_discriminator.step()
+            optim_critic.step()
+
+            # Clip the weights of the critic
+            with torch.no_grad():
+                for p in critic.parameters():
+                    p.clip_(clip)
 
             # Optimize the generator
             if ei % nc == 0:
@@ -206,11 +214,11 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size",
                         type=int,
                         help="The size of a minibatch",
-                        default=128)
+                        default=64)
     parser.add_argument("--base_lr",
                         type=float,
                         help="The initial learning rate to use",
-                        default=0.0001)
+                        default=0.00005)
     parser.add_argument("--debug",
                         action="store_true",
                         help="Whether to use small datasets")
@@ -220,6 +228,11 @@ if __name__ == '__main__':
                         help="The number of batches for training the critic"
                              " before making one update if the generator",
                         default=5)
+    parser.add_argument("--clip",
+                        type=float,
+                        help="The clipping value for the weights "
+                             "of the critic",
+                        default=0.01)
     # Regularization
     parser.add_argument("--dropout",
                         type=float,
