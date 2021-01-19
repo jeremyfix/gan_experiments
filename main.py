@@ -23,6 +23,34 @@ import data
 import models
 
 
+# def train_gan():
+#     pos_labels = torch.ones((bi, )).to(device)
+#     neg_labels = torch.zeros((bi, )).to(device)
+
+#     # Forward pass for training the discriminator
+#     real_logits, fake_logits, _ = model(X, None)
+
+#     Dloss = loss(real_logits, pos_labels) + \
+#             loss(fake_logits, neg_labels)
+#     dloss_e = Dloss.item()
+
+#     optim_discriminator.zero_grad()
+#     Dloss.backward()
+#     optim_discriminator.step()
+
+#     # Forward pass for training the generator
+#     optim_generator.zero_grad()
+#     _, fake_logits, _ = model(None, batch_size=bi)
+
+#     # The generator wants his generated images to be positive
+#     Gloss = loss(fake_logits, pos_labels)
+#     gloss_e = Gloss.item()
+
+#     optim_generator.zero_grad()
+#     Gloss.backward()
+#     optim_generator.step()
+
+
 def train(args):
     """
     Training of the algorithm
@@ -38,6 +66,7 @@ def train(args):
     debug = args.debug
     base_lr = args.base_lr
     num_epochs = args.num_epochs
+    nc = args.ncritic
 
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda') if use_cuda else torch.device('cpu')
@@ -61,8 +90,6 @@ def train(args):
     optim_generator = optim.Adam(model.generator.parameters(),
                                  betas=[0.5, 0.999],
                                  lr=base_lr)
-
-    loss = torch.nn.BCEWithLogitsLoss()
 
     # Callbacks
     summary_text = "## Summary of the model architecture\n" + \
@@ -98,41 +125,29 @@ def train(args):
         tot_dloss = tot_gloss = 0
         Ng = Nd = 0
         model.train()
-        for X, _ in tqdm.tqdm(train_loader):
-
+        for ei, (X, _) in tqdm.tqdm(enumerate(train_loader)):
+            
+            # X is a batch of real data
             X = X.to(device)
             bi = X.shape[0]
-
-            pos_labels = torch.ones((bi, )).to(device)
-            neg_labels = torch.zeros((bi, )).to(device)
-
-            # Forward pass for training the discriminator
-            real_logits, fake_logits, _ = model(X, None)
-
-            Dloss = loss(real_logits, pos_labels) + \
-                    loss(fake_logits, neg_labels)
-            dloss_e = Dloss.item()
-
+            
+            # Optimize the critic
+            real_values, fake_values, _ = model(X, None)
+            critic_loss = real_values.mean() - fake_values.mean()
             optim_discriminator.zero_grad()
-            Dloss.backward()
+            critic_loss.backward()
             optim_discriminator.step()
 
-            # Forward pass for training the generator
-            optim_generator.zero_grad()
-            _, fake_logits, _ = model(None, batch_size=bi)
+            # Optimize the generator
+            if ei % nc == 0:
+                pass
 
-            # The generator wants his generated images to be positive
-            Gloss = loss(fake_logits, pos_labels)
-            gloss_e = Gloss.item()
 
-            optim_generator.zero_grad()
-            Gloss.backward()
-            optim_generator.step()
 
-            Nd += 2*bi
-            tot_dloss += (batch_size * dloss_e)
-            Ng += bi
-            tot_gloss += (batch_size * gloss_e)
+            # Nd += 2*bi
+            # tot_dloss += (batch_size * dloss_e)
+            # Ng += bi
+            # tot_gloss += (batch_size * gloss_e)
 
         print(f"D loss : {tot_dloss/Nd} ; G loss : {tot_gloss/Ng}")
 
@@ -199,6 +214,11 @@ if __name__ == '__main__':
                         action="store_true",
                         help="Whether to use small datasets")
 
+    parser.add_argument("--ncritic",
+                        type=int,
+                        help="The number of batches for training the critic"
+                             " before making one update if the generator",
+                        default=5)
     # Regularization
     parser.add_argument("--dropout",
                         type=float,
