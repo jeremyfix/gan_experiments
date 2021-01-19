@@ -54,54 +54,10 @@ def conv_downsampling(channels):
             nn.LeakyReLU(negative_slope=0.2)]
 
 
-class GAN(nn.Module):
-
-    def __init__(self,
-                 img_shape: Tuple[int, int, int],
-                 dropout: float) -> None:
-        """
-        Args:
-            img_shape : (C, H, W) image shapes
-            dropout (float): The probability of zeroing before the FC layers
-        """
-        super(GAN, self).__init__()
-        self.img_shape = img_shape
-        self.discriminator = Discriminator(img_shape, dropout)
-        self.generator = Generator(img_shape)
-
-    def forward(self,
-                X: Optional[torch.Tensor],
-                batch_size: Optional[float]):
-        """
-        Given true images, returns the generated tensors
-        and the logits of the discriminator for both the generated tensors
-        and the true tensors
-
-        Args:
-            X (torch.Tensor) : a real image or None if we just
-                               want the logits for the generated images
-        """
-
-        if X is None and batch_size is None:
-            raise RuntimeError("Not both X and batch_size can be None")
-
-        if X is not None:
-            real_logits = self.discriminator(X)
-            batch_size = X.shape[0]
-        else:
-            real_logits = None
-            batch_size = batch_size
-
-        fake_images = self.generator(batch_size=batch_size)
-        fake_logits = self.discriminator(fake_images)
-
-        return real_logits, fake_logits, fake_images
-
-
 class Discriminator(nn.Module):
     """
     The discriminator network tells if the input image is real or not
-    The output logit is supposed to be high(-ly positive) for real images 
+    The output logit is supposed to be high(-ly positive) for real images
     and low (highly negative) for fake images
     """
 
@@ -123,15 +79,15 @@ class Discriminator(nn.Module):
             *conv_bn_leakyrelu(in_C, 32),
             *conv_bn_leakyrelu(32, 32),
             *conv_downsampling(32),
-            nn.Dropout2d(dropout), 
+            nn.Dropout2d(dropout),
             *conv_bn_leakyrelu(32, 32),
             *conv_bn_leakyrelu(32, 32),
             *conv_downsampling(32),
-            nn.Dropout2d(dropout), 
+            nn.Dropout2d(dropout),
             *conv_bn_leakyrelu(32, 64),
             *conv_bn_leakyrelu(64, 64),
             *conv_downsampling(64),
-            nn.Dropout2d(dropout) 
+            nn.Dropout2d(dropout)
         )
 
         # Compute the size of the representation by forward propagating
@@ -220,6 +176,50 @@ class Generator(nn.Module):
 
         return out
 
+class GAN(nn.Module):
+
+    def __init__(self,
+                 img_shape: Tuple[int, int, int],
+                 dropout: float) -> None:
+        """
+        Args:
+            img_shape : (C, H, W) image shapes
+            dropout (float): The probability of zeroing before the FC layers
+        """
+        super(GAN, self).__init__()
+        self.img_shape = img_shape
+        self.discriminator = Discriminator(img_shape, dropout)
+        self.generator = Generator(img_shape)
+
+    def forward(self,
+                X: Optional[torch.Tensor],
+                batch_size: Optional[float]):
+        """
+        Given true images, returns the generated tensors
+        and the logits of the discriminator for both the generated tensors
+        and the true tensors
+
+        Args:
+            X (torch.Tensor) : a real image or None if we just
+                               want the logits for the generated images
+        """
+
+        if X is None and batch_size is None:
+            raise RuntimeError("Not both X and batch_size can be None")
+
+        if X is not None:
+            real_logits = self.discriminator(X)
+            batch_size = X.shape[0]
+        else:
+            real_logits = None
+            batch_size = batch_size
+
+        fake_images = self.generator(batch_size=batch_size)
+        fake_logits = self.discriminator(fake_images)
+
+        return real_logits, fake_logits, fake_images
+
+
 def test_tconv():
     layers = nn.Sequential(
         nn.Conv2d(20, 10, kernel_size=3, stride=1, padding=2)
@@ -228,12 +228,12 @@ def test_tconv():
     inputs = torch.zeros((1, 20, 2, 2))
     outputs = layers(inputs)
     print(outputs.shape)
-   
+
     imagify = nn.Linear(100, 7*7*10)
     conv1 = nn.ConvTranspose2d(10, 10,
-                                kernel_size=5,
-                                stride=1,
-                                padding=2)
+                               kernel_size=5,
+                               stride=1,
+                               padding=2)
     conv2 = nn.ConvTranspose2d(10, 10,
                                kernel_size=5,
                                stride=2,
