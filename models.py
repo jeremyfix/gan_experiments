@@ -108,6 +108,12 @@ class Discriminator(nn.Module):
         out_classif = self.classif(input_classif)
         return out_classif.squeeze()
 
+def up_conv_bn_relu(in_channels, out_channels):
+    return [
+        nn.Upsample(scale_factor=2),
+
+    ]
+
 
 def tconv_bn_relu(in_channels, out_channels,
                   ksize, stride, pad, opad):
