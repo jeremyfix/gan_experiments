@@ -5,9 +5,12 @@
 import argparse
 import logging
 import sys
+import os
 # External imports
 import torch
 import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
+import torchvision
 import deepcs
 import deepcs.display
 from deepcs.training import train as ftrain, ModelCheckpoint
@@ -70,11 +73,22 @@ def train(args):
 
     logger.info(summary_text)
 
+    logdir = generate_unique_logpath('./logs', 'ctc')
+    tensorboard_writer = SummaryWriter(log_dir = logdir,
+                                       flush_secs=5)
+    tensorboard_writer.add_text("Experiment summary", deepcs.display.htmlize(summary_text))
+
+    with open(os.path.join(logdir, "summary.txt"), 'w') as f:
+        f.write(summary_text)
+
+    logger.info(f">>>>> Results saved in {logdir}")
+
     # Training loop
     for e in range(num_epochs):
 
         tot_dloss = tot_gloss = 0
         Ng = Nd = 0
+        model.train()
         for X, _ in tqdm.tqdm(train_loader):
 
             X = X.to(device)
@@ -112,6 +126,16 @@ def train(args):
             tot_gloss += (batch_size * gloss_e)
 
         print(f"D loss : {tot_dloss/Nd} ; G loss : {tot_gloss/Ng}")
+
+        # Generate few samples from the generator
+        model.eval()
+        _, _, generated_images = model(None, batch_size=16)
+        grid = torchvision.utils.make_grid(generated_images, nrow=4, normalize=True,
+                                           range=(-1, 1))
+        tensorboard_writer.add_image("Generated", grid, e)
+        torchvision.utils.save_image(grid, 'images.png')
+
+
 
 
 

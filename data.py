@@ -4,8 +4,10 @@
 from typing import Union
 from pathlib import Path
 # External imports
+import tqdm
 import numpy as np
 import torch
+import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
 
@@ -41,19 +43,35 @@ def get_dataloaders(dataset_root: Union[str, Path],
 
     if dataset == "MNIST":
         # Get the two datasets, make them tensors in [0, 1]
+        transform= transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize( (0.1309,), (0.3084,))
+        ]
+        )
         train_dataset = torchvision.datasets.MNIST(root=dataset_root,
                                                    train=True,
                                                    download=True,
-                                                   transform=transforms.ToTensor())
+                                                   transform=transform
+                                                  )
         test_dataset = torchvision.datasets.MNIST(root=dataset_root,
                                                   train=False,
                                                   download=True,
-                                                  transform=transforms.ToTensor())
+                                                  transform=transform
+                                                 )
         dataset = torch.utils.data.ConcatDataset([train_dataset,
                                                  test_dataset])
-        # And keep only the 6 from it
-        # idx_to_keep=[si for (si, (x,y)) in enumerate(dataset) if y == _DEFAULT_MNIST_DIGIT]
-        # dataset = torch.utils.data.Subset(dataset, idx_to_keep)
+
+        # Compute the channel-wise normalization coefficients
+        # mean = std = 0
+        # img, _ = dataset[0]
+        # print(img.shape)
+        # N = len(dataset) * img.shape[1] * img.shape[2]
+        # for img, _ in tqdm.tqdm(dataset):
+        #     mean += img.sum()/N
+        # for img, _ in tqdm.tqdm(dataset):
+        #     std += ((img - mean)**2).sum()/N
+        # std = np.sqrt(std)
+        # print(mean, std)
 
 
     if small_experiment:
