@@ -134,9 +134,21 @@ def train(args):
             Ng += bi
             tot_gloss += (batch_size * gloss_e)
 
-        print(f"D loss : {tot_dloss/Nd} ; G loss : {tot_gloss/Ng}")
+        tot_dloss /= Nd
+        tot_gloss /= Ng
+
+        print(f"D loss : {tot_dloss} ; G loss : {tot_gloss}")
+        
+        # Save the metrics on the tensorboard
+        tensorboard_writer.add_scalar('Discriminator loss', 
+                                      tot_dloss, 
+                                      e+1)
+        tensorboard_writer.add_scalar('Generator loss', 
+                                      tot_gloss, 
+                                      e+1)
 
         # Generate few samples from the generator
+
         model.eval()
         _, _, fake_images = model(None, batch_size=16)
         grid = torchvision.utils.make_grid(fake_images,
