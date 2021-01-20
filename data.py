@@ -14,6 +14,8 @@ import torchvision.transforms as transforms
 _DEFAULT_DATASET_ROOT = "/opt/Datasets"
 _DEFAULT_MNIST_DIGIT = 6
 
+_MNIST_MEAN = 0.1309
+_MNIST_STD = 0.3084
 
 def get_dataloaders(dataset_root: Union[str, Path],
                     cuda: bool,
@@ -45,7 +47,7 @@ def get_dataloaders(dataset_root: Union[str, Path],
         # Get the two datasets, make them tensors in [0, 1]
         transform= transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize( (0.1309,), (0.3084,))
+            transforms.Normalize( (_MNIST_MEAN,), (_MNIST_STD,))
         ]
         )
         train_dataset = torchvision.datasets.MNIST(root=dataset_root,
