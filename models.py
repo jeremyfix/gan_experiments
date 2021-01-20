@@ -108,10 +108,19 @@ class Discriminator(nn.Module):
         out_classif = self.classif(input_classif)
         return out_classif.squeeze()
 
+
 def up_conv_bn_relu(in_channels, out_channels):
+    ks = 3
     return [
         nn.Upsample(scale_factor=2),
-
+        nn.Conv2d(in_channels,
+                  out_channels,
+                  kernel_size=ks,
+                  stride=1,
+                  padding=int((ks-1)/2),
+                  bias=True),
+        nn.BatchNorm2d(out_channels),
+        nn.LeakyReLU(negative_slope=0.2)
     ]
 
 
@@ -151,10 +160,10 @@ class Generator(nn.Module):
             nn.LeakyReLU(negative_slope=0.2)
         )
 
+        # Note : size, stride, pad, opad
         self.model = nn.Sequential(
-            *tconv_bn_relu(base_c*4, base_c*2, 5, 1, 2, 0),
-            *tconv_bn_relu(base_c*2, base_c*1, 5, 2, 2, 1),
-            *tconv_bn_relu(base_c, self.img_shape[0], 5, 2, 2, 1),
+            *tconv_bn_relu(base_c*4, base_c*2, 6, 2, 2, 0),
+            *tconv_bn_relu(base_c*2, self.img_shape[0], 6, 2, 2, 0),
             nn.Tanh()  # as suggested by [Radford, 2016]
         )
 
@@ -237,19 +246,13 @@ def test_tconv():
 
     imagify = nn.Linear(100, 7*7*10)
     conv1 = nn.ConvTranspose2d(10, 10,
-                               kernel_size=5,
-                               stride=1,
+                               kernel_size=6,
+                               stride=2,
                                padding=2)
-    conv2 = nn.ConvTranspose2d(10, 10,
-                               kernel_size=5,
+    conv2 = nn.ConvTranspose2d(10, 1,
+                               kernel_size=6,
                                stride=2,
-                               padding=2,
-                               output_padding=1)
-    conv3 = nn.ConvTranspose2d(10, 1,
-                               kernel_size=5,
-                               stride=2,
-                               padding=2,
-                               output_padding=1)
+                               padding=2)
 
     X = torch.randn(64, 100)
     X = imagify(X).view(-1, 10, 7, 7)
@@ -257,8 +260,6 @@ def test_tconv():
     X = conv1(X)
     print(X.shape)
     X = conv2(X)
-    print(X.shape)
-    X = conv3(X)
     print(X.shape)
 
 
