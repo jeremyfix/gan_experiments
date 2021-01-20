@@ -126,7 +126,7 @@ def train(args):
         tot_closs = tot_gloss = 0
         Nc = Ng = 0
         model.train()
-        for ei, (X, _) in tqdm.tqdm(enumerate(train_loader)):
+        for ei, (X, _) in enumerate(tqdm.tqdmtrain_loader)):
 
             # X is a batch of real data
             X = X.to(device)
