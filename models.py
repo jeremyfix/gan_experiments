@@ -79,15 +79,15 @@ class Discriminator(nn.Module):
             *conv_bn_leakyrelu(in_C, 32),
             *conv_bn_leakyrelu(32, 32),
             *conv_downsampling(32),
-            nn.Dropout2d(dropout),
-            *conv_bn_leakyrelu(32, 32),
-            *conv_bn_leakyrelu(32, 32),
-            *conv_downsampling(32),
-            nn.Dropout2d(dropout),
+            # nn.Dropout2d(dropout),
             *conv_bn_leakyrelu(32, 64),
             *conv_bn_leakyrelu(64, 64),
             *conv_downsampling(64),
-            nn.Dropout2d(dropout)
+            # nn.Dropout2d(dropout),
+            *conv_bn_leakyrelu(64, 128),
+            *conv_bn_leakyrelu(128, 128),
+            *conv_downsampling(128)
+            # nn.Dropout2d(dropout)
         )
 
         # Compute the size of the representation by forward propagating
@@ -162,10 +162,14 @@ class Generator(nn.Module):
 
         # Note : size, stride, pad, opad
         self.model = nn.Sequential(
-            *tconv_bn_relu(base_c*4, base_c*2, 6, 2, 2, 0),
-            *tconv_bn_relu(base_c*2, self.img_shape[0], 6, 2, 2, 0),
-            nn.Tanh()  # as suggested by [Radford, 2016]
+            *up_conv_bn_relu(256, 64),
+            *up_conv_bn_relu(64, 1)
         )
+        # self.model = nn.Sequential(
+        #     *tconv_bn_relu(base_c*4, base_c*2, 6, 2, 2, 0),
+        #     *tconv_bn_relu(base_c*2, self.img_shape[0], 6, 2, 2, 0),
+        #     nn.Tanh()  # as suggested by [Radford, 2016]
+        # )
 
     def forward(self,
                 X: Optional[torch.Tensor] = None,
