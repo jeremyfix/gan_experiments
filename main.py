@@ -126,7 +126,7 @@ def train(args):
         tot_closs = tot_gloss = 0
         Nc = Ng = 0
         model.train()
-        for ei, (X, _) in enumerate(tqdm.tqdmtrain_loader)):
+        for ei, (X, _) in enumerate(tqdm.tqdm(train_loader)):
 
             # X is a batch of real data
             X = X.to(device)
@@ -166,6 +166,8 @@ def train(args):
         # Generate few samples from the generator
         model.eval()
         _, _, fake_images = model(None, batch_size=16)
+        # Unscale the images
+        fake_images = fake_images * data._MNIST_STD + data._MNIST_MEAN
         grid = torchvision.utils.make_grid(fake_images,
                                            nrow=4,
                                            normalize=True,
