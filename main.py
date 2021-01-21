@@ -199,15 +199,30 @@ def generate(args):
     generator.eval()
 
     # Generate some samples
-    sample_nrows = 8
-    sample_ncols = 8
-    z = torch.randn(sample_nrows * sample_ncols,
-                    generator.latent_size).to(device)
+    # sample_nrows = 8
+    # sample_ncols = 8
+    # z = torch.randn(sample_nrows * sample_ncols,
+    #                 generator.latent_size).to(device)
 
+    # fake_images = generator(z)
+    # fake_images = fake_images * data._MNIST_STD + data._MNIST_MEAN
+    # grid = torchvision.utils.make_grid(fake_images,
+    #                                    nrow=sample_nrows,
+    #                                    normalize=True)
+    # torchvision.utils.save_image(grid, f'generated.png')
+
+
+    # Interpolate in the laten space
+    N = 64
+    z = torch.zeros((N, generator.latent_size)).to(device)
+    z[0, :] = torch.randn(generator.latent_size)
+    z[-1, :] = torch.randn(generator.latent_size)
+    for i in range(1, N ):
+        z[i, :] = z[0, :] + i/(N-1) * (z[-1, :] - z[0, :])
     fake_images = generator(z)
     fake_images = fake_images * data._MNIST_STD + data._MNIST_MEAN
     grid = torchvision.utils.make_grid(fake_images,
-                                       nrow=sample_nrows,
+                                       nrow=8,
                                        normalize=True)
     torchvision.utils.save_image(grid, f'generated.png')
 
