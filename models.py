@@ -12,7 +12,7 @@ import torch.nn as nn
 
 def conv_bn_leakyrelu(in_channels, out_channels):
     """
-    Conv(3x3, same) - BN - LeakyRelu(0.3)
+    Conv(3x3, same) - BN - LeakyRelu(0.2)
     """
     ks = 3
     return [
@@ -22,13 +22,13 @@ def conv_bn_leakyrelu(in_channels, out_channels):
                   padding=int((ks-1)/2),
                   bias=False),
         nn.BatchNorm2d(out_channels),
-        nn.LeakyReLU(negative_slope=0.3)
+        nn.LeakyReLU(negative_slope=0.2)
     ]
 
 
 def conv_downsampling(channels):
     """
-    Conv(3x3, s2) - LeakyRelu(0.3)
+    Conv(3x3, s2) - LeakyRelu(0.2)
     """
     ks = 3
     return [
@@ -37,7 +37,7 @@ def conv_downsampling(channels):
                   stride=2,
                   padding=int((ks-1)/2),
                   bias=True),
-        nn.LeakyReLU(negative_slope=0.3)
+        nn.LeakyReLU(negative_slope=0.2)
     ]
 
 
@@ -153,7 +153,7 @@ def up_conv_bn_relu(in_channels, out_channels):
 def tconv_bn_relu(in_channels, out_channels, ksize, stride, pad, opad):
     """
     Upsampling with transposed convolutions
-    TConv2D - BN - LeakyRelu(0.3)
+    TConv2D - BN - LeakyRelu(0.2)
     """
     return [
             nn.ConvTranspose2d(in_channels, out_channels,
@@ -162,7 +162,7 @@ def tconv_bn_relu(in_channels, out_channels, ksize, stride, pad, opad):
                                padding=pad,
                                output_padding=opad),
             nn.BatchNorm2d(out_channels),
-            nn.LeakyReLU(negative_slope=0.3)
+            nn.LeakyReLU(negative_slope=0.2)
     ]
 
 
@@ -189,13 +189,13 @@ class Generator(nn.Module):
         self.upscale = nn.Sequential(
             nn.Linear(self.latent_size, 7*7*self.base_c*4, bias=False),
             nn.BatchNorm1d(7*7*self.base_c*4),
-            nn.LeakyReLU(negative_slope=0.3)
+            nn.ReLU()
         )
 
         self.model = nn.Sequential(
             *up_conv_bn_relu(self.base_c*4, self.base_c*2),
             *up_conv_bn_relu(self.base_c*2, self.base_c),
-            nn.Conv2d(self.base_c, self.img_shape[0], 
+            nn.Conv2d(self.base_c, self.img_shape[0],
                       kernel_size=1,stride=1, padding=0, bias=True),
             nn.Tanh()
         )
@@ -340,7 +340,21 @@ def test_tconv():
     X = conv3(X)
     print(X.shape)
 
+def test_discriminator():
+    critic = Discriminator((1, 28, 28), 0.3, 32)
+    X = torch.randn(64, 1, 28, 28)
+    out = critic(X)
+    assert(out.shape == torch.Size([64]))
 
+def test_generator():
+    generator = Generator((1, 28, 28), 100, 64)
+    X = torch.randn(64, 100)
+    out = generator(X, None)
+    assert(out.shape == torch.Size([64, 1, 28, 28]))
+    out = generator(None, 64)
+    assert(out.shape == torch.Size([64, 1, 28, 28]))
 
 if __name__ == '__main__':
     test_tconv()
+    test_discriminator()
+    test_generator()
