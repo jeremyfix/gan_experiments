@@ -242,7 +242,7 @@ def generate(args):
     fake_images = generator(z)
     fake_images = fake_images * data._MNIST_STD + data._MNIST_MEAN
     grid = torchvision.utils.make_grid(fake_images,
-                                       nrow=sample_nrows,
+                                       nrow=sample_ncols,
                                        normalize=True)
     torchvision.utils.save_image(grid, f'generated1.png')
 
