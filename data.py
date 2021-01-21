@@ -14,8 +14,11 @@ import torchvision.transforms as transforms
 _DEFAULT_DATASET_ROOT = "/opt/Datasets"
 _DEFAULT_MNIST_DIGIT = 6
 
-_MNIST_MEAN = 0.1309
-_MNIST_STD = 0.3084
+# _MNIST_MEAN = 0.1309
+# _MNIST_STD = 0.3084
+_MNIST_MEAN = 0.5
+_MNIST_STD = 0.5
+
 
 def get_dataloaders(dataset_root: Union[str, Path],
                     cuda: bool,
