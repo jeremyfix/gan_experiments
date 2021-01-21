@@ -186,7 +186,31 @@ def generate(args):
     Function to generate new samples from the generator
     using a pretrained network
     """
-    pass
+
+    # Parameters
+    modelpath = args.modelpath
+    assert(modelpath is not None)
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device('cuda') if use_cuda else torch.device('cpu')
+    
+    # Reload the generator
+    generator = torch.load(modelpath).to(device)
+    generator.eval()
+
+    # Generate some samples
+    sample_nrows = 8
+    sample_ncols = 8
+    z = torch.randn(sample_nrows * sample_ncols,
+                    generator.latent_size).to(device)
+
+    fake_images = generator(z)
+    fake_images = fake_images * data._MNIST_STD + data._MNIST_MEAN
+    grid = torchvision.utils.make_grid(fake_images,
+                                       nrow=sample_nrows,
+                                       normalize=True)
+    torchvision.utils.save_image(grid, f'generated.png')
+
 
 
 if __name__ == '__main__':
@@ -249,6 +273,12 @@ if __name__ == '__main__':
                         help="The probability of zeroing before the FC layers",
                         default=0.3)
 
+    # For the generation
+    parser.add_argument("--modelpath",
+                        type=str,
+                        help="The path to the pt file of the generator to load",
+                        default=None)
+    
     args = parser.parse_args()
 
     eval(f"{args.command}(args)")
