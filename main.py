@@ -23,34 +23,6 @@ import data
 import models
 
 
-# def train_gan():
-#     pos_labels = torch.ones((bi, )).to(device)
-#     neg_labels = torch.zeros((bi, )).to(device)
-
-#     # Forward pass for training the discriminator
-#     real_logits, fake_logits, _ = model(X, None)
-
-#     Dloss = loss(real_logits, pos_labels) + \
-#             loss(fake_logits, neg_labels)
-#     dloss_e = Dloss.item()
-
-#     optim_discriminator.zero_grad()
-#     Dloss.backward()
-#     optim_discriminator.step()
-
-#     # Forward pass for training the generator
-#     optim_generator.zero_grad()
-#     _, fake_logits, _ = model(None, batch_size=bi)
-
-#     # The generator wants his generated images to be positive
-#     Gloss = loss(fake_logits, pos_labels)
-#     gloss_e = Gloss.item()
-
-#     optim_generator.zero_grad()
-#     Gloss.backward()
-#     optim_generator.step()
-
-
 def train(args):
     """
     Training of the algorithm
@@ -66,8 +38,11 @@ def train(args):
     debug = args.debug
     base_lr = args.base_lr
     num_epochs = args.num_epochs
-    nc = args.ncritic
-    clip = args.clip
+    discriminator_base_c = args.discriminator_base_c
+    generator_base_c = args.generator_base_c
+    latent_size = args.latent_size
+    sample_nrows = 8
+    sample_ncols = 8
 
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda') if use_cuda else torch.device('cpu')
@@ -81,16 +56,22 @@ def train(args):
                                                                 small_experiment=debug)
 
     # Model definition
-    model = models.GAN(img_shape, dropout)
+    model = models.GAN(img_shape,
+                       dropout,
+                       discriminator_base_c,
+                       latent_size,
+                       generator_base_c)
     model.to(device)
 
     # Optimizers
     critic = model.discriminator
     generator = model.generator
-    optim_critic = optim.RMSprop(critic.parameters(),
+    optim_critic = optim.Adam(critic.parameters(),
+                              lr=base_lr)
+    optim_generator = optim.Adam(generator.parameters(),
                                  lr=base_lr)
-    optim_generator = optim.RMSprop(generator.parameters(),
-                                    lr=base_lr)
+
+    loss = torch.nn.BCEWithLogitsLoss()
 
     # Callbacks
     summary_text = "## Summary of the model architecture\n" + \
@@ -101,7 +82,7 @@ def train(args):
 
     logger.info(summary_text)
 
-    logdir = generate_unique_logpath('./logs', 'ctc')
+    logdir = generate_unique_logpath('./logs', 'gan')
     tensorboard_writer = SummaryWriter(log_dir = logdir,
                                        flush_secs=5)
     tensorboard_writer.add_text("Experiment summary", deepcs.display.htmlize(summary_text))
@@ -109,16 +90,22 @@ def train(args):
     with open(os.path.join(logdir, "summary.txt"), 'w') as f:
         f.write(summary_text)
 
+    save_path = os.path.join(logdir, 'generator.pt')
+
     logger.info(f">>>>> Results saved in {logdir}")
 
-    # Generate few samples from the generator
+    # Define a fixed noise used for sampling
+    fixed_noise = torch.randn(sample_nrows*sample_ncols,
+                              latent_size).to(device)
+
+    # Generate few samples from the initial generator
     model.eval()
-    _, _, fake_images = model(None, batch_size=16)
+    fake_images = model.generator(X=fixed_noise)
     grid = torchvision.utils.make_grid(fake_images,
-                                       nrow=4,
+                                       nrow=sample_nrows,
                                        normalize=True)
     tensorboard_writer.add_image("Generated", grid, 0)
-    torchvision.utils.save_image(grid, 'images.png')
+    torchvision.utils.save_image(grid, 'images/images-00.png')
 
     # Training loop
     for e in range(num_epochs):
@@ -132,47 +119,66 @@ def train(args):
             X = X.to(device)
             bi = X.shape[0]
 
-            # Optimize the critic
-            real_values, fake_values, _ = model(X, None)
-            critic_loss = -(real_values.mean() - fake_values.mean())
+            pos_labels = torch.ones((bi, )).to(device)
+            neg_labels = torch.zeros((bi, )).to(device)
+
+            # Forward pass for training the discriminator
+            real_logits, _ = model(X, None)
+            fake_logits, _ = model(None, bi)
+
+            Dloss = loss(real_logits, pos_labels) + \
+                    loss(fake_logits, neg_labels)
+            dloss_e = Dloss.item()
+
             optim_critic.zero_grad()
-            critic_loss.backward()
+            Dloss.backward()
             optim_critic.step()
 
-            # Clip the weights of the critic
-            with torch.no_grad():
-                for p in critic.parameters():
-                    p.clip_(clip)
+            # Forward pass for training the generator
+            optim_generator.zero_grad()
+            fake_logits, _ = model(None, bi)
 
-            # Optimize the generator
-            if ei % nc == 0:
-                _, fake_values, _ = model(None, batch_size)
-                generator_loss = -fake_values.mean()
-                optim_generator.zero_grad()
-                generator_loss.backward()
-                optim_generator.step()
+            # The generator wants his generated images to be positive
+            Gloss = loss(fake_logits, pos_labels)
+            gloss_e = Gloss.item()
+
+            optim_generator.zero_grad()
+            Gloss.backward()
+            optim_generator.step()
 
             Nc += 2*bi
-            tot_closs += (bi * critic_loss.item())
+            tot_closs += 2 * bi * dloss_e
             Ng += bi
-            tot_gloss += (bi * generator_loss.item())
+            tot_gloss += bi * gloss_e
+
         tot_closs /= Nc
         tot_gloss /= Ng
-        print(f"C loss : {tot_closs} ; G loss : {tot_gloss}")
+        logger.info(f"[Epoch {e+1}] C loss : {tot_closs} ; G loss : {tot_gloss}")
 
         tensorboard_writer.add_scalar("Critic loss", tot_closs, e+1)
         tensorboard_writer.add_scalar("Generator loss", tot_gloss, e+1)
 
         # Generate few samples from the generator
         model.eval()
-        _, _, fake_images = model(None, batch_size=16)
+        fake_images = model.generator(X=fixed_noise)
         # Unscale the images
         fake_images = fake_images * data._MNIST_STD + data._MNIST_MEAN
         grid = torchvision.utils.make_grid(fake_images,
-                                           nrow=4,
-                                           normalize=True,
-                                           range=(-1, 1))
+                                           nrow=sample_nrows,
+                                           normalize=True)
         tensorboard_writer.add_image("Generated", grid, e+1)
+        torchvision.utils.save_image(grid, f'images/images-{e+1:02d}.png')
+
+        real_images = X[:sample_nrows*sample_ncols,...]
+        X = X * data._MNIST_STD + data._MNIST_MEAN
+        grid = torchvision.utils.make_grid(real_images,
+                                           nrow=sample_nrows,
+                                           normalize=True)
+        tensorboard_writer.add_image("Real", grid, e+1)
+
+        # We save the generator
+        logger.info(f"Generator saved at {save_path}")
+        torch.save(model.generator, save_path)
 
 
 def generate(args):
@@ -210,7 +216,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_epochs",
                         type=int,
                         help="The number of epochs to train for",
-                        default=50)
+                        default=100)
     parser.add_argument("--batch_size",
                         type=int,
                         help="The size of a minibatch",
@@ -223,16 +229,20 @@ if __name__ == '__main__':
                         action="store_true",
                         help="Whether to use small datasets")
 
-    parser.add_argument("--ncritic",
+    # Architectures
+    parser.add_argument("--discriminator_base_c",
                         type=int,
-                        help="The number of batches for training the critic"
-                             " before making one update if the generator",
-                        default=5)
-    parser.add_argument("--clip",
-                        type=float,
-                        help="The clipping value for the weights "
-                             "of the critic",
-                        default=0.01)
+                        help="The base number of channels for the discriminator",
+                        default=32)
+    parser.add_argument("--generator_base_c",
+                        type=int,
+                        help="The base number of channels for the generator",
+                        default=64)
+    parser.add_argument("--latent_size",
+                        type=int,
+                        help="The dimension of the latent space",
+                        default=100)
+
     # Regularization
     parser.add_argument("--dropout",
                         type=float,
