@@ -66,12 +66,29 @@ def train(args):
     # Optimizers
     critic = model.discriminator
     generator = model.generator
+    ######################
+    # START CODING HERE ##
+    ######################
+    # Step 1 - Define the optimizer for the critic
+    #@TEMPL@optim_critic = None
+    #@SOL
     optim_critic = optim.Adam(critic.parameters(),
                               lr=base_lr)
+    #SOL@
+    # Step 2 - Define the optimizer for the generator
+    #@TEMPL@optim_generator = None
+    #@SOL
     optim_generator = optim.Adam(generator.parameters(),
                                  lr=base_lr)
+    #SOL@
 
-    loss = torch.nn.BCEWithLogitsLoss()
+    # Step 3 - Define the loss (it must embed the sigmoid)
+    #@TEMPL@loss = None
+    loss = torch.nn.BCEWithLogitsLoss()  #@SOL@
+
+    ####################
+    # END CODING HERE ##
+    ####################
 
     # Callbacks
     summary_text = "## Summary of the model architecture\n" + \
@@ -122,17 +139,35 @@ def train(args):
             pos_labels = torch.ones((bi, )).to(device)
             neg_labels = torch.zeros((bi, )).to(device)
 
-            # Forward pass for training the discriminator
-            real_logits, _ = model(X, None)
-            fake_logits, _ = model(None, bi)
+            ######################
+            # START CODING HERE ##
+            ######################
+            # Step 1 - Forward pass for training the discriminator
+            #@TEMPL@real_logits, _ = None
+            #@TEMPL@fake_logits, _ = None
+            real_logits, _ = model(X, None)  #@SOL@
+            fake_logits, _ = model(None, bi)  #@SOL@
 
-            Dloss = loss(real_logits, pos_labels) + \
-                    loss(fake_logits, neg_labels)
+            # Step 2 - Compute the loss of the critic
+            #@TEMPL@Dloss = None + None
+            #@SOL
+            Dloss = 0.5 * (loss(real_logits, pos_labels) + \
+                    loss(fake_logits, neg_labels))
+            #SOL@
+
+            # Step 3 - Reinitialize the gradient accumulator of the critic
+            #@TEMPL@None
+            optim_critic.zero_grad()  #@SOL@
+            # Step 4 - Perform the backward pass on the loss
+            #@TEMPL@None
+            Dloss.backward() #@SOL@
+            # Step 5 - Update the parameters of the critic
+            #@TEMPL@None
+            optim_critic.step()  #@SOL@
+            ####################
+            # END CODING HERE ##
+            ####################
             dloss_e = Dloss.item()
-
-            optim_critic.zero_grad()
-            Dloss.backward()
-            optim_critic.step()
 
             # Forward pass for training the generator
             optim_generator.zero_grad()
