@@ -128,6 +128,7 @@ def train(args):
     for e in range(num_epochs):
 
         tot_closs = tot_gloss = 0
+        critic_accuracy = 0
         Nc = Ng = 0
         model.train()
         for ei, (X, _) in enumerate(tqdm.tqdm(train_loader)):
@@ -167,6 +168,7 @@ def train(args):
             ####################
             # END CODING HERE ##
             ####################
+            critic_accuracy += (real_logits > 0.5).sum().item + (fake_logits < 0.5).sum().item
             dloss_e = Dloss.item()
 
             # Forward pass for training the generator
@@ -186,11 +188,13 @@ def train(args):
             Ng += bi
             tot_gloss += bi * gloss_e
 
+        critic_accuracy /= Nc
         tot_closs /= Nc
         tot_gloss /= Ng
-        logger.info(f"[Epoch {e+1}] C loss : {tot_closs} ; G loss : {tot_gloss}")
+        logger.info(f"[Epoch {e+1}] C loss : {tot_closs} ; C accuracy : {critic_accuracy}, G loss : {tot_gloss}")
 
         tensorboard_writer.add_scalar("Critic loss", tot_closs, e+1)
+        tensorboard_writer.add_scalar("Critic accuracy", critic_accuracy, e+1)
         tensorboard_writer.add_scalar("Generator loss", tot_gloss, e+1)
 
         # Generate few samples from the generator
