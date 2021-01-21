@@ -105,7 +105,7 @@ def train(args):
                                        nrow=sample_nrows,
                                        normalize=True)
     tensorboard_writer.add_image("Generated", grid, 0)
-    torchvision.utils.save_image(grid, 'images/images-00.png')
+    torchvision.utils.save_image(grid, 'images/images-0000.png')
 
     # Training loop
     for e in range(num_epochs):
@@ -167,7 +167,7 @@ def train(args):
                                            nrow=sample_nrows,
                                            normalize=True)
         tensorboard_writer.add_image("Generated", grid, e+1)
-        torchvision.utils.save_image(grid, f'images/images-{e+1:02d}.png')
+        torchvision.utils.save_image(grid, f'images/images-{e+1:04d}.png')
 
         real_images = X[:sample_nrows*sample_ncols,...]
         X = X * data._MNIST_STD + data._MNIST_MEAN
@@ -213,16 +213,21 @@ def generate(args):
 
 
     # Interpolate in the laten space
-    N = 64
-    z = torch.zeros((N, generator.latent_size)).to(device)
-    z[0, :] = torch.randn(generator.latent_size)
-    z[-1, :] = torch.randn(generator.latent_size)
-    for i in range(1, N ):
-        z[i, :] = z[0, :] + i/(N-1) * (z[-1, :] - z[0, :])
-    fake_images = generator(z)
+    N = 20
+    z = torch.zeros((N, N, generator.latent_size)).to(device)
+    # Generate the 3 corner samples
+    z[0, 0, :] = torch.randn(generator.latent_size)
+    z[-1, 0, :] = torch.randn(generator.latent_size)
+    z[0, -1, :] = torch.randn(generator.latent_size)
+    di = z[-1, 0, :] - z[0, 0, :]
+    dj = z[0, -1, :] - z[0, 0, :]
+    for i in range(0, N):
+        for j in range(0, N):
+            z[i, j, :] = z[0, 0, :] + i/(N-1) * di + j/(N-1)*dj
+    fake_images = generator(z.reshape(N**2, -1))
     fake_images = fake_images * data._MNIST_STD + data._MNIST_MEAN
     grid = torchvision.utils.make_grid(fake_images,
-                                       nrow=8,
+                                       nrow=N,
                                        normalize=True)
     torchvision.utils.save_image(grid, f'generated.png')
 
