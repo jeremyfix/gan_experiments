@@ -168,7 +168,7 @@ def train(args):
             ####################
             # END CODING HERE ##
             ####################
-            critic_accuracy += (real_logits > 0.5).sum().item + (fake_logits < 0.5).sum().item
+            critic_accuracy += (real_logits > 0.5).sum().item() + (fake_logits < 0.5).sum().item()
             dloss_e = Dloss.item()
 
             # Forward pass for training the generator
