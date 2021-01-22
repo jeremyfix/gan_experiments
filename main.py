@@ -31,6 +31,7 @@ def train(args):
     logger.info("Training")
 
     # Parameters
+    dataset = args.dataset
     dataset_root = args.dataset_root
     nthreads = args.nthreads
     batch_size = args.batch_size
@@ -52,7 +53,7 @@ def train(args):
                                                                  cuda=use_cuda,
                                                                  batch_size=batch_size,
                                                                  n_threads = nthreads,
-                                                                 dataset="MNIST",
+                                                                 dataset=dataset,
                                                                 small_experiment=debug)
 
     # Model definition
