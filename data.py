@@ -41,30 +41,31 @@ def get_dataloaders(dataset_root: Union[str, Path],
                                  dataset (usefull for debuging)
     """
 
-    datasets = ["MNIST"]
+    datasets = ["MNIST", "FashionMNIST"]
     if dataset not in datasets:
         raise NotImplementedError(f"Cannot import the dataset {dataset}."
                                   f" Available datasets are {datasets}")
 
-    if dataset == "MNIST":
+    if dataset in ["MNIST", "FashionMNIST"]:
         # Get the two datasets, make them tensors in [0, 1]
         transform= transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize( (_MNIST_MEAN,), (_MNIST_STD,))
         ]
         )
-        train_dataset = torchvision.datasets.MNIST(root=dataset_root,
-                                                   train=True,
-                                                   download=True,
-                                                   transform=transform
-                                                  )
-        test_dataset = torchvision.datasets.MNIST(root=dataset_root,
-                                                  train=False,
-                                                  download=True,
-                                                  transform=transform
-                                                 )
+        dataset_loader = getattr(torchvision.datasets, f"{dataset}")
+        train_dataset = dataset_loader(root=dataset_root,
+                                       train=True,
+                                       download=True,
+                                       transform=transform
+                                      )
+        test_dataset = dataset_loader(root=dataset_root,
+                                      train=False,
+                                      download=True,
+                                      transform=transform
+                                     )
         dataset = torch.utils.data.ConcatDataset([train_dataset,
-                                                 test_dataset])
+                                                  test_dataset])
 
         # Compute the channel-wise normalization coefficients
         # mean = std = 0
@@ -77,7 +78,6 @@ def get_dataloaders(dataset_root: Union[str, Path],
         #     std += ((img - mean)**2).sum()/N
         # std = np.sqrt(std)
         # print(mean, std)
-
 
     if small_experiment:
         dataset = torch.utils.data.Subset(dataset, range(batch_size))
