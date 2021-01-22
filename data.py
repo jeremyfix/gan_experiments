@@ -42,15 +42,23 @@ def get_dataloaders(dataset_root: Union[str, Path],
                                  dataset (usefull for debuging)
     """
 
-    datasets = ["MNIST", "FashionMNIST", "EMNIST"]
+    datasets = ["MNIST", "FashionMNIST", "EMNIST", "SVHN"]
     if dataset not in datasets:
         raise NotImplementedError(f"Cannot import the dataset {dataset}."
                                   f" Available datasets are {datasets}")
 
-    
     dataset_loader = getattr(torchvision.datasets, f"{dataset}")
+    train_kwargs = {}
+    test_kwargs = {}
+    if dataset in ["MNIST", "FashionMNIST", "EMNIST"]:
+        train_kwargs['train'] = True
+        test_kwargs['train'] = False
     if dataset == "EMNIST":
-        dataset_loader = functools.partial(dataset_loader, split='balanced')
+        train_kwargs['split'] = 'balanced'
+    elif dataset == "SVHN":
+        train_kwargs['split'] = 'train'
+        test_kwargs['split'] = 'test'
+
 
     # Get the two datasets, make them tensors in [0, 1]
     transform= transforms.Compose([
@@ -59,12 +67,12 @@ def get_dataloaders(dataset_root: Union[str, Path],
     ]
     )
     train_dataset = dataset_loader(root=dataset_root,
-                                   train=True,
+                                   **train_kwargs,
                                    download=True,
                                    transform=transform
                                   )
     test_dataset = dataset_loader(root=dataset_root,
-                                  train=False,
+                                  **test_kwargs,
                                   download=True,
                                   transform=transform
                                  )

@@ -328,7 +328,7 @@ if __name__ == '__main__':
 
     # Data parameters
     parser.add_argument("--dataset",
-                        choices=["MNIST", "FashionMNIST", "EMNIST"],
+                        choices=["MNIST", "FashionMNIST", "EMNIST", "SVHN"],
                         help="Which dataset to use")
     parser.add_argument("--dataset_root",
                         type=str,

@@ -223,6 +223,7 @@ class Generator(nn.Module):
         self.latent_size = latent_size
         self.base_c = base_c
 
+        H, W = img_shape[1:]
         ######################
         # START CODING HERE ##
         ######################
@@ -230,8 +231,8 @@ class Generator(nn.Module):
         #@TEMPL@self.upscale = nn.Sequential()
         #@SOL
         self.upscale = nn.Sequential(
-            nn.Linear(self.latent_size, 7*7*self.base_c*4, bias=False),
-            nn.BatchNorm1d(7*7*self.base_c*4),
+            nn.Linear(self.latent_size, H//4*W//4*self.base_c*4, bias=False),
+            nn.BatchNorm1d(H//4*W//4*self.base_c*4),
             nn.ReLU()
         )
         #SOL@
@@ -306,7 +307,7 @@ class Generator(nn.Module):
         # Step 2 - "Reshape" the upscaled image as a 4D tensor
         #  Hint : use the view method
         #@TEMPL@reshaped = None
-        reshaped = upscaled.view(-1, self.base_c*4, 7, 7)  #@SOL@
+        reshaped = upscaled.view(-1, self.base_c*4, self.img_shape[1]//4, self.img_shape[2]//4)  #@SOL@
 
         # Step 3 : Forward pass through the last convolutional part
         #          to generate the image
