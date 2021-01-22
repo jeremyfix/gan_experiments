@@ -62,6 +62,14 @@ class Discriminator(nn.Module):
         self.img_shape = img_shape
 
         in_C = img_shape[0]
+        ######################
+        # START CODING HERE ##
+        ######################
+        # Definition of the convolutional part of the classifier
+        # Hint : conv_bn_leakyrelu() and conv_downsampling() can
+        #        be usefull
+        #@TEMPL@self.cnn = None
+        #@SOL
         # Note: the output receptive field size is 36 x 36
         #       the output representation size is 3 x 3
         self.cnn = nn.Sequential(
@@ -78,6 +86,10 @@ class Discriminator(nn.Module):
             *conv_downsampling(base_c*3),
             nn.Dropout2d(dropout)
         )
+        #SOL@
+        ####################
+        # END CODING HERE ##
+        ####################
 
         # Compute the size of the representation by forward propagating
         # a fake tensor; This can be cpu tensor as the model is not yet
@@ -88,9 +100,19 @@ class Discriminator(nn.Module):
               f"discriminator is {out_cnn.shape}")
         num_features = reduce(operator.mul, out_cnn.shape[1:])
 
+        ######################
+        # START CODING HERE ##
+        ######################
+        # The fully connected part of the classifier
+        #@TEMPL@self.classif = None
+        #@SOL
         self.classif = nn.Sequential(
             nn.Linear(num_features, 1)
         )
+        #SOL@
+        ####################
+        # END CODING HERE ##
+        ####################
 
         # Run the initialization script
         self.apply(self.init_weights)
@@ -117,9 +139,24 @@ class Discriminator(nn.Module):
             Logits (torch.Tensor (B, )) : The logits
         """
 
-        out_cnn = self.cnn(X)
-        input_classif = out_cnn.view((out_cnn.shape[0], -1))
-        out_classif = self.classif(input_classif)
+        ######################
+        # START CODING HERE ##
+        ######################
+        # Step 1 - Forward pass through the CNN part
+        #@TEMPL@out_cnn = None
+        out_cnn = self.cnn(X)  #@SOL@
+
+        # Step 2 - "Reshape" the 4D tensor to a 2D tensor
+        #  Hint : Tensor.view can be of help
+        #@TEMPL@input_classif = None
+        input_classif = out_cnn.view((out_cnn.shape[0], -1))  #@SOL@
+
+        # Step 3 - Forward pass through the fully connected layers
+        #@TEMPL@out_classif = None
+        out_classif = self.classif(input_classif)  #@SOL@
+        ####################
+        # END CODING HERE ##
+        ####################
         return out_classif.squeeze()
 
 
@@ -186,12 +223,23 @@ class Generator(nn.Module):
         self.latent_size = latent_size
         self.base_c = base_c
 
+        ######################
+        # START CODING HERE ##
+        ######################
+        # Step 1 - Build the feedforward upscaling network
+        #@TEMPL@self.upscale = nn.Sequential()
+        #@SOL
         self.upscale = nn.Sequential(
             nn.Linear(self.latent_size, 7*7*self.base_c*4, bias=False),
             nn.BatchNorm1d(7*7*self.base_c*4),
             nn.ReLU()
         )
+        #SOL@
 
+        # Step 2 - Build the convolutional upscaling network
+        # Hint : up_conv_bn_relu() might be useful
+        #@TEMPL@self.model = nn.Sequential()
+        #@SOL
         self.model = nn.Sequential(
             *up_conv_bn_relu(self.base_c*4, self.base_c*2),
             *up_conv_bn_relu(self.base_c*2, self.base_c),
@@ -199,7 +247,12 @@ class Generator(nn.Module):
                       kernel_size=1,stride=1, padding=0, bias=True),
             nn.Tanh()
         )
+        #SOL@
+        ####################
+        # END CODING HERE ##
+        ####################
 
+        #@SOL
         # Note : size, stride, pad, opad
         # self.model = nn.Sequential(
         #     *tconv_bn_relu2(base_c*4, base_c*2, 5, 1, 2, 0),
@@ -209,6 +262,7 @@ class Generator(nn.Module):
         #     nn.ConvTranspose2d(base_c, 1, 5, 2, 2, 1),
         #     nn.Tanh()  # as suggested by [Radford, 2016]
         # )
+        #SOL@
 
         # Initialize the convolutional layers
         self.apply(self.init_weights)
@@ -241,9 +295,26 @@ class Generator(nn.Module):
                 raise RuntimeError("Expected a 2D tensor as input to the "
                                    f" generator got a {len(X.shape)}D tensor.")
 
-        upscaled = self.upscale(X)
-        X = upscaled.view(-1, self.base_c*4, 7, 7)
-        out = self.model(X)
+        ######################
+        # START CODING HERE ##
+        ######################
+        # Step 1 - Forward pass through the first linear layers
+        #          to generate the seed image
+        #@TEMPL@upscaled = None
+        upscaled = self.upscale(X)  #@SOL@
+
+        # Step 2 - "Reshape" the upscaled image as a 4D tensor
+        #  Hint : use the view method
+        #@TEMPL@reshaped = None
+        reshaped = upscaled.view(-1, self.base_c*4, 7, 7)  #@SOL@
+
+        # Step 3 : Forward pass through the last convolutional part
+        #          to generate the image
+        #@TEMPL@out = None
+        out = self.model(reshaped)  #@SOL@
+        ####################
+        # END CODING HERE ##
+        ####################
 
         return out
 
@@ -260,7 +331,7 @@ class GAN(nn.Module):
         Args:
             img_shape : (C, H, W) image shapes
             dropout (float): The probability of zeroing before the FC layers
-            discriminator_base_c (int) : The base number of channels for 
+            discriminator_base_c (int) : The base number of channels for
                                          the discriminator
             latent_size (int) : The size of the latent space for the generator
             generator_base_c (int) : The base number of channels for the
@@ -296,15 +367,39 @@ class GAN(nn.Module):
             raise RuntimeError("Not both X and batch_size can be not None")
 
         if X is not None:
-            real_logits = self.discriminator(X)
+            ######################
+            # START CODING HERE ##
+            ######################
+            # An input tensor of real images is provided
+            # we compute its logits
+            # 1 line
+            #@TEMPL@real_logits = None
+            real_logits = self.discriminator(X)  #@SOL@
+            ####################
+            # END CODING HERE ##
+            ####################
             return real_logits, X
         else:
+            ######################
+            # START CODING HERE ##
+            ######################
+            # No input tensor is provided. We generate batch_size fake images
+            # and evaluate its logits
+            # 2 lines
+            #@TEMPL@fake_images = None
+            #@TEMPL@fake_logits = None
+            #@SOL
             fake_images = self.generator(X=None, batch_size=batch_size)
             fake_logits = self.discriminator(fake_images)
+            #SOL@
+            ####################
+            # END CODING HERE ##
+            ####################
 
             return fake_logits, fake_images
 
 
+#@SOL
 def test_tconv():
     layers = nn.Sequential(
         nn.Conv2d(20, 10, kernel_size=3, stride=1, padding=2)
@@ -339,6 +434,7 @@ def test_tconv():
     print(X.shape)
     X = conv3(X)
     print(X.shape)
+#SOL@
 
 def test_discriminator():
     critic = Discriminator((1, 28, 28), 0.3, 32)
@@ -355,6 +451,6 @@ def test_generator():
     assert(out.shape == torch.Size([64, 1, 28, 28]))
 
 if __name__ == '__main__':
-    test_tconv()
+    test_tconv()  #@SOL@
     test_discriminator()
     test_generator()

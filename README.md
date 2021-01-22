@@ -14,6 +14,10 @@ reasonnably good images but I wanted to see what is going on in the long term.
 
 ![Fake digits generated during training](mnist.gif)
 
+However, I'm really surprised by the losses and accuracies I get : a pretty low discriminator loss, a high discriminator accuracy and a high generator loss. All these metrics seem to indicate the generator is not doing a good job even if the generated digits are indeed, visually, reasonably good. 
+
+![Losses and accuracies](metrics.svg)
+
 ### Interpolation experiment
 
 We take three random vectors. The image of the generator are the fake digits, on the picture below, in the top-left, top-right and bottom-left corners. Then, for every cell, we compute an interpolate random input of which we display the image by the generator.

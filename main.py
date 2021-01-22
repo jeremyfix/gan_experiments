@@ -159,31 +159,52 @@ def train(args):
             # Step 3 - Reinitialize the gradient accumulator of the critic
             #@TEMPL@None
             optim_critic.zero_grad()  #@SOL@
+
             # Step 4 - Perform the backward pass on the loss
             #@TEMPL@None
             Dloss.backward() #@SOL@
+
             # Step 5 - Update the parameters of the critic
             #@TEMPL@None
             optim_critic.step()  #@SOL@
+
             ####################
             # END CODING HERE ##
             ####################
+
             real_probs = torch.nn.functional.sigmoid(real_logits)
             fake_probs = torch.nn.functional.sigmoid(fake_logits)
             critic_accuracy += (real_probs > 0.5).sum().item() + (fake_probs < 0.5).sum().item()
             dloss_e = Dloss.item()
 
-            # Forward pass for training the generator
-            optim_generator.zero_grad()
-            fake_logits, _ = model(None, bi)
+            ######################
+            # START CODING HERE ##
+            ######################
+            # Step 1 - Forward pass for training the generator
+            #@TEMPL@fake_logits, _ = None
+            fake_logits, _ = model(None, bi)  #@SOL@
 
+            # Step 2 - Compute the loss of the generator
             # The generator wants his generated images to be positive
-            Gloss = loss(fake_logits, pos_labels)
-            gloss_e = Gloss.item()
+            #@TEMPL@Gloss = None
+            Gloss = loss(fake_logits, pos_labels)  #@SOL@
 
-            optim_generator.zero_grad()
-            Gloss.backward()
-            optim_generator.step()
+            # Step 3 - Reinitialize the gradient accumulator of the critic
+            #@TEMPL@None
+            optim_generator.zero_grad()  #@SOL@
+
+            # Step 4 - Perform the backward pass on the loss
+            #@TEMPL@None
+            Gloss.backward()  #@SOL@
+
+            # Step 5 - Update the parameters of the generator
+            #@TEMPL@None
+            optim_generator.step()  #@SOL@
+            ####################
+            # END CODING HERE ##
+            ####################
+
+            gloss_e = Gloss.item()
 
             Nc += 2*bi
             tot_closs += 2 * bi * dloss_e
@@ -234,25 +255,46 @@ def generate(args):
 
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda') if use_cuda else torch.device('cpu')
-    
-    # Reload the generator
-    generator = torch.load(modelpath).to(device)
+
+    ######################
+    # START CODING HERE ##
+    ######################
+    # Step 1 - Reload the generator
+    #@TEMPL@generator = None
+    generator = torch.load(modelpath).to(device)  #@SOL@
+
+    # Put the model in evaluation mode (due to BN and Dropout)
     generator.eval()
 
     # Generate some samples
     sample_nrows = 1
     sample_ncols = 8
+
+    # Step 2 - Generate a noise vector, normaly distributed
+    #          of shape (sample_nrows * sample_ncol, generator.latent_size)
+    #@TEMPL@z = None
+    #@SOL
     z = torch.randn(sample_nrows * sample_ncols,
                     generator.latent_size).to(device)
+    #SOL@
 
-    fake_images = generator(z)
+    # Step 3 - Forward pass through the generator
+    #          The output is (B, 1, 28, 28)
+    #@TEMPL@fake_images = None
+    fake_images = generator(z)  #@SOL@
+
+    # Denormalize the result
     fake_images = fake_images * data._MNIST_STD + data._MNIST_MEAN
+    ####################
+    # END CODING HERE ##
+    ####################
+
     grid = torchvision.utils.make_grid(fake_images,
                                        nrow=sample_ncols,
                                        normalize=True)
     torchvision.utils.save_image(grid, f'generated1.png')
 
-
+    #@SOL
     # Interpolate in the laten space
     N = 20
     z = torch.zeros((N, N, generator.latent_size)).to(device)
@@ -271,7 +313,7 @@ def generate(args):
                                        nrow=N,
                                        normalize=True)
     torchvision.utils.save_image(grid, f'generated2.png')
-
+    #SOL@
 
 
 if __name__ == '__main__':

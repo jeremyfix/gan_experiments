@@ -37,7 +37,7 @@ def get_dataloaders(dataset_root: Union[str, Path],
         n_threads (int): the number of threads to use for dataloading
         dataset (str): the dataset to load
         val_size (float): the proportion of data for the validation set
-        small_experiment (bool): wheter or not to use a small 
+        small_experiment (bool): wheter or not to use a small
                                  dataset (usefull for debuging)
     """
 
