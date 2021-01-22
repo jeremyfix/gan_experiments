@@ -168,7 +168,9 @@ def train(args):
             ####################
             # END CODING HERE ##
             ####################
-            critic_accuracy += (real_logits > 0.5).sum().item() + (fake_logits < 0.5).sum().item()
+            real_probs = torch.nn.functional.sigmoid(real_logits)
+            fake_probs = torch.nn.functional.sigmoid(fake_logits)
+            critic_accuracy += (real_probs > 0.5).sum().item() + (fake_probs < 0.5).sum().item()
             dloss_e = Dloss.item()
 
             # Forward pass for training the generator
