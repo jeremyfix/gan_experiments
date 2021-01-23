@@ -1,9 +1,6 @@
 # GAN experiments
 
-Objectives : 
-
-- train a GAN to generate some MNIST digits
-- train a GAN to generate larger colored images, why not cute pictures of cats 
+These are sample scripts for playing with DC-GAN. These scripts were developed for preparing a labwork on GAN (see [here](https://github.com/jeremyfix/deeplearning-lectures)). It can be used to train a DCGAN like architecture on MNIST, EMNIST, FashionMNIST or SVHN. On all four datasets, the generator seem to generate pretty realistic samples.
 
 ## Experiments
 
