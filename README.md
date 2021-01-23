@@ -2,6 +2,8 @@
 
 These are sample scripts for playing with DC-GAN. These scripts were developed for preparing a labwork on GAN (see [here](https://github.com/jeremyfix/deeplearning-lectures)). It can be used to train a DCGAN like architecture on MNIST, EMNIST, FashionMNIST or SVHN. On all four datasets, the generator seem to generate pretty realistic samples.
 
+The discriminator is a convolutional network using stacked Conv3x3, with convolutional downsampling and batchnormalization and LeakyRelu. The generator is using the resize-convolution pattern with UpSampling followed by convolutional layers with batchnormalization and Relu and finally a Tanh. All is implemented with Pytorch and trained with pytorch-1.7.0 cuda 10.1. An epoch takes approximately 20s (for MNIST like) to 40s (for SVHN) on a 1080Ti.
+
 ## Experiments
 
 ### Training the GAN
