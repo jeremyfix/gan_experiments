@@ -64,6 +64,12 @@ def get_dataloaders(dataset_root: Union[str, Path],
         transforms.Normalize( (_IMG_MEAN,), (_IMG_STD,))
     ]
     )
+    if dataset == 'CelebA':
+        transform = transforms.Compose([
+            transforms.Resize(64),
+            transforms.CenterCrop(64),
+            transform
+        ])
     train_dataset = dataset_loader(root=dataset_root,
                                    **train_kwargs,
                                    download=True,
