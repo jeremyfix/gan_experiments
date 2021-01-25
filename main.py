@@ -11,12 +11,8 @@ import torch
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
-import deepcs
 import deepcs.display
-from deepcs.training import train as ftrain, ModelCheckpoint
-from deepcs.testing import test as ftest
 from deepcs.fileutils import generate_unique_logpath
-import deepcs.metrics
 import tqdm
 # Local imports
 import data
@@ -225,7 +221,7 @@ def train(args):
         model.eval()
         fake_images = model.generator(X=fixed_noise)
         # Unscale the images
-        fake_images = fake_images * data._MNIST_STD + data._MNIST_MEAN
+        fake_images = fake_images * data._IMG_STD + data._IMG_MEAN
         grid = torchvision.utils.make_grid(fake_images,
                                            nrow=sample_nrows,
                                            normalize=True)
@@ -233,7 +229,7 @@ def train(args):
         torchvision.utils.save_image(grid, f'images/images-{e+1:04d}.png')
 
         real_images = X[:sample_nrows*sample_ncols,...]
-        X = X * data._MNIST_STD + data._MNIST_MEAN
+        X = X * data._IMG_STD + data._IMG_MEAN
         grid = torchvision.utils.make_grid(real_images,
                                            nrow=sample_nrows,
                                            normalize=True)
@@ -285,7 +281,7 @@ def generate(args):
     fake_images = generator(z)  #@SOL@
 
     # Denormalize the result
-    fake_images = fake_images * data._MNIST_STD + data._MNIST_MEAN
+    fake_images = fake_images * data._IMG_STD + data._IMG_MEAN
     ####################
     # END CODING HERE ##
     ####################
@@ -309,7 +305,7 @@ def generate(args):
         for j in range(0, N):
             z[i, j, :] = z[0, 0, :] + i/(N-1) * di + j/(N-1)*dj
     fake_images = generator(z.reshape(N**2, -1))
-    fake_images = fake_images * data._MNIST_STD + data._MNIST_MEAN
+    fake_images = fake_images * data._IMG_STD + data._IMG_MEAN
     grid = torchvision.utils.make_grid(fake_images,
                                        nrow=N,
                                        normalize=True)
@@ -328,7 +324,7 @@ if __name__ == '__main__':
 
     # Data parameters
     parser.add_argument("--dataset",
-                        choices=["MNIST", "FashionMNIST", "EMNIST", "SVHN"],
+                        choices=["MNIST", "FashionMNIST", "EMNIST", "SVHN", "CelebA"],
                         help="Which dataset to use")
     parser.add_argument("--dataset_root",
                         type=str,

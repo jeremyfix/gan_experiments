@@ -15,10 +15,8 @@ import torchvision.transforms as transforms
 _DEFAULT_DATASET_ROOT = "/opt/Datasets"
 _DEFAULT_MNIST_DIGIT = 6
 
-# _MNIST_MEAN = 0.1309
-# _MNIST_STD = 0.3084
-_MNIST_MEAN = 0.5
-_MNIST_STD = 0.5
+_IMG_MEAN = 0.5
+_IMG_STD = 0.5
 
 
 def get_dataloaders(dataset_root: Union[str, Path],
@@ -42,7 +40,7 @@ def get_dataloaders(dataset_root: Union[str, Path],
                                  dataset (usefull for debuging)
     """
 
-    datasets = ["MNIST", "FashionMNIST", "EMNIST", "SVHN"]
+    datasets = ["MNIST", "FashionMNIST", "EMNIST", "SVHN", "CelebA"]
     if dataset not in datasets:
         raise NotImplementedError(f"Cannot import the dataset {dataset}."
                                   f" Available datasets are {datasets}")
@@ -55,7 +53,7 @@ def get_dataloaders(dataset_root: Union[str, Path],
         test_kwargs['train'] = False
     if dataset == "EMNIST":
         train_kwargs['split'] = 'balanced'
-    elif dataset == "SVHN":
+    elif dataset in ["SVHN", 'CelebA']:
         train_kwargs['split'] = 'train'
         test_kwargs['split'] = 'test'
 
@@ -63,7 +61,7 @@ def get_dataloaders(dataset_root: Union[str, Path],
     # Get the two datasets, make them tensors in [0, 1]
     transform= transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize( (_MNIST_MEAN,), (_MNIST_STD,))
+        transforms.Normalize( (_IMG_MEAN,), (_IMG_STD,))
     ]
     )
     train_dataset = dataset_loader(root=dataset_root,
@@ -138,5 +136,28 @@ def test_mnist():
     plt.show()
 
 
+def test_celeba():
+    import matplotlib.pyplot as plt
+
+    train_loader, valid_loader, img_shape = get_dataloaders(dataset_root=_DEFAULT_DATASET_ROOT,
+                                                            batch_size=16,
+                                                            cuda=False,
+                                                            dataset="CelebA")
+    print(f"I loaded {len(train_loader)} train minibatches. The images"
+          f" are of shape {img_shape}")
+
+    X, y = next(iter(train_loader))
+
+    grid = torchvision.utils.make_grid(X, nrow=4)
+    print(grid.min(), grid.max())
+    print(grid.shape)
+
+    plt.figure()
+    plt.imshow(np.transpose(grid.numpy(), (1, 2, 0)) * _IMG_STD + _IMG_MEAN)
+    plt.show()
+
+
+
 if __name__ == '__main__':
-    test_mnist()
+    # test_mnist()
+    test_celeba()
