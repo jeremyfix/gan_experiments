@@ -35,6 +35,7 @@ def train(args):
     dropout = args.dropout
     debug = args.debug
     base_lr = args.base_lr
+    wdecay = args.wdecay
     num_epochs = args.num_epochs
     discriminator_base_c = args.discriminator_base_c
     generator_base_c = args.generator_base_c
@@ -71,7 +72,8 @@ def train(args):
     #@TEMPL@optim_critic = None
     #@SOL
     optim_critic = optim.AdamW(critic.parameters(),
-                               lr=base_lr)
+                               lr=base_lr,
+                               weight_decay=wdecay)
     #SOL@
     # Step 2 - Define the optimizer for the generator
     #@TEMPL@optim_generator = None
@@ -239,11 +241,15 @@ def train(args):
 
         tensorboard_writer.add_scalar("Critic p-loss", tot_dploss, e+1)
         tensorboard_writer.add_scalar("Critic n-loss", tot_dnloss, e+1)
+        tensorboard_writer.add_scalar("Critic v-loss", val_metrics['loss'], e+1)
         tensorboard_writer.add_scalar("Critic p-accuracy",
                                       critic_paccuracy,
                                       e+1)
         tensorboard_writer.add_scalar("Critic n-accuracy",
                                       critic_naccuracy,
+                                      e+1)
+        tensorboard_writer.add_scalar("Critic v-accuracy",
+                                      val_metrics['accuracy'],
                                       e+1)
         tensorboard_writer.add_scalar("Generator loss", tot_gloss, e+1)
 
@@ -413,7 +419,11 @@ if __name__ == '__main__':
     parser.add_argument("--base_lr",
                         type=float,
                         help="The initial learning rate to use",
-                        default=0.00005)
+                        default=0.0005)
+    parser.add_argument("--wdecay",
+                        type=float,
+                        help="The weight decay used for the critic",
+                        default=1.0)
     parser.add_argument("--debug",
                         action="store_true",
                         help="Whether to use small datasets")
