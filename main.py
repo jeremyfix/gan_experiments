@@ -6,6 +6,7 @@ import argparse
 import logging
 import sys
 import os
+from typing import Callable, Dict
 # External imports
 import torch
 import torch.optim as optim
@@ -108,6 +109,12 @@ def train(args):
 
     logger.info(f">>>>> Results saved in {logdir}")
 
+    # Note: the validation data are only real images, hence the metrics below
+    val_fmetrics = {
+        "accuracy": lambda real_probas: (real_probas > 0.5).double().mean(),
+        "loss": lambda real_probas: -real_probas.log().mean()
+    }
+
     # Define a fixed noise used for sampling
     fixed_noise = torch.randn(sample_nrows*sample_ncols,
                               latent_size).to(device)
@@ -124,9 +131,11 @@ def train(args):
     # Training loop
     for e in range(num_epochs):
 
-        tot_closs = tot_gloss = 0
-        critic_accuracy = 0
-        Nc = Ng = 0
+        tot_dploss = tot_dnloss = tot_gloss = 0
+        critic_paccuracy = critic_naccuracy = 0
+        Ns = 0
+        val_metrics = evaluate(model, device, valid_loader, val_fmetrics)
+        print(val_metrics)
         model.train()
         for ei, (X, _) in enumerate(tqdm.tqdm(train_loader)):
 
@@ -149,8 +158,9 @@ def train(args):
             # Step 2 - Compute the loss of the critic
             #@TEMPL@Dloss = None + None
             #@SOL
-            Dloss = 0.5 * (loss(real_logits, pos_labels) + \
-                    loss(fake_logits, neg_labels))
+            D_ploss = loss(real_logits, pos_labels)
+            D_nloss = loss(fake_logits, neg_labels)
+            Dloss = 0.5 * (D_ploss + D_nloss)
             #SOL@
 
             # Step 3 - Reinitialize the gradient accumulator of the critic
@@ -171,8 +181,10 @@ def train(args):
 
             real_probs = torch.nn.functional.sigmoid(real_logits)
             fake_probs = torch.nn.functional.sigmoid(fake_logits)
-            critic_accuracy += (real_probs > 0.5).sum().item() + (fake_probs < 0.5).sum().item()
-            dloss_e = Dloss.item()
+            critic_paccuracy += (real_probs > 0.5).sum().item()
+            critic_naccuracy += (fake_probs < 0.5).sum().item()
+            dploss_e = Dloss.item()
+            dnloss_e = Dloss.item()
 
             ######################
             # START CODING HERE ##
@@ -203,18 +215,38 @@ def train(args):
 
             gloss_e = Gloss.item()
 
-            Nc += 2*bi
-            tot_closs += 2 * bi * dloss_e
-            Ng += bi
+            tot_dploss += bi * dploss_e
+            tot_dnloss += bi * dnloss_e
             tot_gloss += bi * gloss_e
+            Ns += bi
 
-        critic_accuracy /= Nc
-        tot_closs /= Nc
-        tot_gloss /= Ng
-        logger.info(f"[Epoch {e+1}] C loss : {tot_closs} ; C accuracy : {critic_accuracy}, G loss : {tot_gloss}")
+        critic_paccuracy /= Ns
+        critic_naccuracy /= Ns
+        tot_dploss /= Ns
+        tot_dnloss /= Ns
+        tot_gloss /= Ns
 
-        tensorboard_writer.add_scalar("Critic loss", tot_closs, e+1)
-        tensorboard_writer.add_scalar("Critic accuracy", critic_accuracy, e+1)
+        # Evaluate the metrics on the validation set
+        val_metrics = evaluate(model, device, valid_loader, val_fmetrics)
+        print(val_metrics)
+
+        logger.info(f"[Epoch {e+1}] "
+                    f"D ploss : {tot_dploss} ; "
+                    f"D paccuracy : {critic_paccuracy}, "
+                    f"D nloss : {tot_dnloss} ; "
+                    f"D naccuracy : {critic_naccuracy}, "
+                    f"D vloss :  ; "
+                    f"D vaccuracy : {val_metrics['accuracy']}, "
+                    f"G loss : {tot_gloss}")
+
+        tensorboard_writer.add_scalar("Critic p-loss", tot_dploss, e+1)
+        tensorboard_writer.add_scalar("Critic n-loss", tot_dnloss, e+1)
+        tensorboard_writer.add_scalar("Critic p-accuracy",
+                                      critic_paccuracy,
+                                      e+1)
+        tensorboard_writer.add_scalar("Critic n-accuracy",
+                                      critic_naccuracy,
+                                      e+1)
         tensorboard_writer.add_scalar("Generator loss", tot_gloss, e+1)
 
         # Generate few samples from the generator
@@ -239,6 +271,42 @@ def train(args):
         logger.info(f"Generator saved at {save_path}")
         torch.save(model.generator, save_path)
 
+
+def evaluate(model: torch.nn.Module,
+             device: torch.device,
+             loader: torch.utils.data.DataLoader,
+             metrics: Dict[str, Callable]):
+    """
+    Compute the averaged metrics given in the dictionnary.
+    The dictionnary metrics gives a function to compute the metrics on a
+    minibatch and averaged on it.
+    """
+    model.eval()
+
+    tot_metrics = {}
+    Ns = 0
+    for (inputs, targets) in loader:
+
+        # Move the data to the GPU if required
+        inputs, targets = inputs.to(device), targets.to(device)
+
+        batch_size = inputs.shape[0]
+
+        # Forward pass
+        logits, _ = model(inputs, None)
+        probas = logits.sigmoid()
+
+        # Compute the metrics
+        for m_name, m_f in metrics.items():
+            tot_metrics[m_name] = batch_size * m_f(probas).item()
+
+        Ns += batch_size
+
+    # Size average the metrics
+    for m_name, m_v in tot_metrics.items():
+        tot_metrics[m_name] = m_v / Ns
+
+    return tot_metrics
 
 def generate(args):
     """
