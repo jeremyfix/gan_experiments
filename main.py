@@ -70,8 +70,8 @@ def train(args):
     # Step 1 - Define the optimizer for the critic
     #@TEMPL@optim_critic = None
     #@SOL
-    optim_critic = optim.Adam(critic.parameters(),
-                              lr=base_lr)
+    optim_critic = optim.AdamW(critic.parameters(),
+                               lr=base_lr)
     #SOL@
     # Step 2 - Define the optimizer for the generator
     #@TEMPL@optim_generator = None
@@ -436,7 +436,7 @@ if __name__ == '__main__':
     parser.add_argument("--dropout",
                         type=float,
                         help="The probability of zeroing before the FC layers",
-                        default=0.3)
+                        default=0.5)
 
     # For the generation
     parser.add_argument("--modelpath",
