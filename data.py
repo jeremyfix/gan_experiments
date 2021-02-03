@@ -113,7 +113,7 @@ def get_dataloaders(dataset_root: Union[str, Path],
                                                num_workers=n_threads)
     valid_loader = torch.utils.data.DataLoader(valid_dataset,
                                                batch_size=batch_size,
-                                               shuffle=True,
+                                               shuffle=False,
                                                num_workers=n_threads)
 
     img_shape = dataset[0][0].shape  # C, H, W
