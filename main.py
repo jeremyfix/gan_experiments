@@ -134,8 +134,7 @@ def train(args):
         tot_dploss = tot_dnloss = tot_gloss = 0
         critic_paccuracy = critic_naccuracy = 0
         Ns = 0
-        val_metrics = evaluate(model, device, valid_loader, val_fmetrics)
-        print(val_metrics)
+
         model.train()
         for ei, (X, _) in enumerate(tqdm.tqdm(train_loader)):
 
@@ -228,16 +227,15 @@ def train(args):
 
         # Evaluate the metrics on the validation set
         val_metrics = evaluate(model, device, valid_loader, val_fmetrics)
-        print(val_metrics)
 
         logger.info(f"[Epoch {e+1}] "
-                    f"D ploss : {tot_dploss} ; "
-                    f"D paccuracy : {critic_paccuracy}, "
-                    f"D nloss : {tot_dnloss} ; "
-                    f"D naccuracy : {critic_naccuracy}, "
-                    f"D vloss :  ; "
-                    f"D vaccuracy : {val_metrics['accuracy']}, "
-                    f"G loss : {tot_gloss}")
+                    f"D ploss : {tot_dploss:.4f} ; "
+                    f"D paccuracy : {critic_paccuracy:.2f}, "
+                    f"D nloss : {tot_dnloss:.4f} ; "
+                    f"D naccuracy : {critic_naccuracy:.2f}, "
+                    f"D vloss :  {val_metrics['loss']:.4f}; "
+                    f"D vaccuracy : {val_metrics['accuracy']:.2f}, "
+                    f"G loss : {tot_gloss:.4f}")
 
         tensorboard_writer.add_scalar("Critic p-loss", tot_dploss, e+1)
         tensorboard_writer.add_scalar("Critic n-loss", tot_dnloss, e+1)
@@ -283,7 +281,7 @@ def evaluate(model: torch.nn.Module,
     """
     model.eval()
 
-    tot_metrics = {}
+    tot_metrics = {m_name: 0.0 for m_name in metrics}
     Ns = 0
     for (inputs, targets) in loader:
 
@@ -298,8 +296,7 @@ def evaluate(model: torch.nn.Module,
 
         # Compute the metrics
         for m_name, m_f in metrics.items():
-            tot_metrics[m_name] = batch_size * m_f(probas).item()
-
+            tot_metrics[m_name] += batch_size * m_f(probas).item()
         Ns += batch_size
 
     # Size average the metrics
@@ -382,7 +379,6 @@ def generate(args):
 
 
 if __name__ == '__main__':
-    logging.basicConfig()
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
