@@ -71,9 +71,15 @@ def train(args):
     # Step 1 - Define the optimizer for the critic
     #@TEMPL@optim_critic = None
     #@SOL
-    optim_critic = optim.AdamW(critic.parameters(),
-                               lr=base_lr,
-                               weight_decay=wdecay)
+    if wdecay == 0:
+        print("No weight decay")
+        optim_critic = optim.Adam(critic.parameters(),
+                                   lr=base_lr)
+    else:
+        optim_critic = optim.AdamW(critic.parameters(),
+                                   lr=base_lr,
+                                   weight_decay=wdecay)
+
     #SOL@
     # Step 2 - Define the optimizer for the generator
     #@TEMPL@optim_generator = None
