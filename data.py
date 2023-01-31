@@ -4,6 +4,7 @@
 from typing import Union
 from pathlib import Path
 import functools
+
 # External imports
 import tqdm
 import numpy as np
@@ -12,20 +13,22 @@ import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
 
-_DEFAULT_DATASET_ROOT = "/opt/Datasets"
+_DEFAULT_DATASET_ROOT = "/mounts/Datasets4/"
 _DEFAULT_MNIST_DIGIT = 6
 
 _IMG_MEAN = 0.5
 _IMG_STD = 0.5
 
 
-def get_dataloaders(dataset_root: Union[str, Path],
-                    cuda: bool,
-                    batch_size: int = 64,
-                    n_threads: int = 4,
-                    dataset: str = "MNIST",
-                    val_size: float = 0.2,
-                    small_experiment: bool = False):
+def get_dataloaders(
+    dataset_root: Union[str, Path],
+    cuda: bool,
+    batch_size: int = 64,
+    n_threads: int = 4,
+    dataset: str = "MNIST",
+    val_size: float = 0.2,
+    small_experiment: bool = False,
+):
     """
     Build and return the pytorch dataloaders
 
@@ -42,46 +45,38 @@ def get_dataloaders(dataset_root: Union[str, Path],
 
     datasets = ["MNIST", "FashionMNIST", "EMNIST", "SVHN", "CelebA"]
     if dataset not in datasets:
-        raise NotImplementedError(f"Cannot import the dataset {dataset}."
-                                  f" Available datasets are {datasets}")
+        raise NotImplementedError(
+            f"Cannot import the dataset {dataset}."
+            f" Available datasets are {datasets}"
+        )
 
     dataset_loader = getattr(torchvision.datasets, f"{dataset}")
     train_kwargs = {}
     test_kwargs = {}
     if dataset in ["MNIST", "FashionMNIST", "EMNIST"]:
-        train_kwargs['train'] = True
-        test_kwargs['train'] = False
+        train_kwargs["train"] = True
+        test_kwargs["train"] = False
     if dataset == "EMNIST":
-        train_kwargs['split'] = 'balanced'
-    elif dataset in ["SVHN", 'CelebA']:
-        train_kwargs['split'] = 'train'
-        test_kwargs['split'] = 'test'
-
+        train_kwargs["split"] = "balanced"
+    elif dataset in ["SVHN", "CelebA"]:
+        train_kwargs["split"] = "train"
+        test_kwargs["split"] = "test"
 
     # Get the two datasets, make them tensors in [0, 1]
-    transform= transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize( (_IMG_MEAN,), (_IMG_STD,))
-    ]
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((_IMG_MEAN,), (_IMG_STD,))]
     )
-    if dataset == 'CelebA':
-        transform = transforms.Compose([
-            transforms.Resize(64),
-            transforms.CenterCrop(64),
-            transform
-        ])
-    train_dataset = dataset_loader(root=dataset_root,
-                                   **train_kwargs,
-                                   download=True,
-                                   transform=transform
-                                  )
-    test_dataset = dataset_loader(root=dataset_root,
-                                  **test_kwargs,
-                                  download=True,
-                                  transform=transform
-                                 )
-    dataset = torch.utils.data.ConcatDataset([train_dataset,
-                                              test_dataset])
+    if dataset == "CelebA":
+        transform = transforms.Compose(
+            [transforms.Resize(64), transforms.CenterCrop(64), transform]
+        )
+    train_dataset = dataset_loader(
+        root=dataset_root, **train_kwargs, download=True, transform=transform
+    )
+    test_dataset = dataset_loader(
+        root=dataset_root, **test_kwargs, download=True, transform=transform
+    )
+    dataset = torch.utils.data.ConcatDataset([train_dataset, test_dataset])
 
     # Compute the channel-wise normalization coefficients
     # mean = std = 0
@@ -107,14 +102,12 @@ def get_dataloaders(dataset_root: Union[str, Path],
     train_dataset = torch.utils.data.Subset(dataset, train_indices)
     valid_dataset = torch.utils.data.Subset(dataset, valid_indices)
 
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=batch_size,
-                                               shuffle=True,
-                                               num_workers=n_threads)
-    valid_loader = torch.utils.data.DataLoader(valid_dataset,
-                                               batch_size=batch_size,
-                                               shuffle=False,
-                                               num_workers=n_threads)
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=batch_size, shuffle=True, num_workers=n_threads
+    )
+    valid_loader = torch.utils.data.DataLoader(
+        valid_dataset, batch_size=batch_size, shuffle=False, num_workers=n_threads
+    )
 
     img_shape = dataset[0][0].shape  # C, H, W
 
@@ -124,12 +117,13 @@ def get_dataloaders(dataset_root: Union[str, Path],
 def test_mnist():
     import matplotlib.pyplot as plt
 
-    train_loader, valid_loader, img_shape = get_dataloaders(dataset_root=_DEFAULT_DATASET_ROOT,
-                                                            batch_size=16,
-                                                            cuda=False,
-                                                            dataset="MNIST")
-    print(f"I loaded {len(train_loader)} train minibatches. The images"
-          f" are of shape {img_shape}")
+    train_loader, valid_loader, img_shape = get_dataloaders(
+        dataset_root=_DEFAULT_DATASET_ROOT, batch_size=16, cuda=False, dataset="MNIST"
+    )
+    print(
+        f"I loaded {len(train_loader)} train minibatches. The images"
+        f" are of shape {img_shape}"
+    )
 
     X, y = next(iter(train_loader))
 
@@ -138,19 +132,20 @@ def test_mnist():
     print(grid.shape)
 
     plt.figure()
-    plt.imshow(np.transpose(grid.numpy(), (1, 2, 0)), cmap='gray_r')
+    plt.imshow(np.transpose(grid.numpy(), (1, 2, 0)), cmap="gray_r")
     plt.show()
 
 
 def test_celeba():
     import matplotlib.pyplot as plt
 
-    train_loader, valid_loader, img_shape = get_dataloaders(dataset_root=_DEFAULT_DATASET_ROOT,
-                                                            batch_size=16,
-                                                            cuda=False,
-                                                            dataset="CelebA")
-    print(f"I loaded {len(train_loader)} train minibatches. The images"
-          f" are of shape {img_shape}")
+    train_loader, valid_loader, img_shape = get_dataloaders(
+        dataset_root=_DEFAULT_DATASET_ROOT, batch_size=16, cuda=False, dataset="CelebA"
+    )
+    print(
+        f"I loaded {len(train_loader)} train minibatches. The images"
+        f" are of shape {img_shape}"
+    )
 
     X, y = next(iter(train_loader))
 
@@ -163,7 +158,6 @@ def test_celeba():
     plt.show()
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     # test_mnist()
     test_celeba()
