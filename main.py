@@ -114,6 +114,9 @@ def train(args):
         f.write(summary_text)
 
     save_path = os.path.join(logdir, "generator.pt")
+    image_path = os.path.join(logdir, "images/")
+    if not os.path.exists(image_path):
+        os.makedirs(image_path)
 
     logger.info(f">>>>> Results saved in {logdir}")
 
@@ -132,7 +135,7 @@ def train(args):
     fake_images = (fake_images * data._IMG_STD + data._IMG_MEAN).clamp(0, 1.0)
     grid = torchvision.utils.make_grid(fake_images, nrow=sample_nrows, normalize=True)
     tensorboard_writer.add_image("Generated", grid, 0)
-    torchvision.utils.save_image(grid, "images/images-0000.png")
+    torchvision.utils.save_image(grid, image_path + "/images-0000.png")
 
     # Training loop
     for e in range(num_epochs):
@@ -264,7 +267,7 @@ def train(args):
             fake_images, nrow=sample_nrows, normalize=True
         )
         tensorboard_writer.add_image("Generated", grid, e + 1)
-        torchvision.utils.save_image(grid, f"images/images-{e+1:04d}.png")
+        torchvision.utils.save_image(grid, f"{image_path}/images-{e+1:04d}.png")
 
         real_images = X[: sample_nrows * sample_ncols, ...]
         real_images = (real_images * data._IMG_STD + data._IMG_MEAN).clamp(0, 1.0)
